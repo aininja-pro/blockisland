@@ -15,7 +15,7 @@ None
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Foundation** - Database setup, project scaffolding, basic data models
-- [ ] **Phase 2: Data Import** - Import existing listings from GoodBarber, preserve geo data
+- [x] **Phase 2: Data Import** - Import existing listings from GoodBarber, preserve geo data
 - [ ] **Phase 3: Premium Logic** - Premium flag, daily rotation algorithm, per-category rotation
 - [ ] **Phase 4: API Endpoint** - JSON feed endpoint returning sorted listings for GoodBarber
 - [ ] **Phase 5: Admin Interface** - Full listing CRUD, premium toggle, rotation view for Chamber staff
@@ -108,7 +108,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 1/1 | Complete | 2026-01-31 |
-| 2. Data Import | 0/TBD | Not started | - |
+| 2. Data Import | 1/1 | Complete | 2026-01-31 |
 | 3. Premium Logic | 0/TBD | Not started | - |
 | 4. API Endpoint | 0/TBD | Not started | - |
 | 5. Admin Interface | 0/TBD | Not started | - |
