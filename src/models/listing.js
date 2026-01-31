@@ -117,7 +117,9 @@ async function remove(id) {
 /**
  * Bulk upsert listings by GoodBarber ID
  * Inserts new records or updates existing ones based on goodbarber_id.
- * Requires UNIQUE constraint on goodbarber_id column.
+ *
+ * Attempts to use UNIQUE constraint for efficient bulk upsert.
+ * Falls back to individual insert/update if constraint doesn't exist.
  *
  * @param {Array<Object>} listings - Array of listing objects with goodbarber_id
  * @returns {Promise<{count: number}>} Number of records processed
@@ -134,6 +136,7 @@ async function upsertByGoodBarberId(listings) {
     updated_at: now,
   }));
 
+  // Try bulk upsert first (requires UNIQUE constraint)
   const { data, error } = await supabase
     .from('listings')
     .upsert(listingsWithTimestamps, {
@@ -141,6 +144,33 @@ async function upsertByGoodBarberId(listings) {
       ignoreDuplicates: false,
     })
     .select();
+
+  // If constraint doesn't exist, fall back to individual operations
+  if (error && error.message.includes('no unique or exclusion constraint')) {
+    console.log('Note: UNIQUE constraint not found, using fallback insert/update method');
+    let count = 0;
+
+    for (const listing of listingsWithTimestamps) {
+      // Check if exists
+      const existing = await getByGoodBarberId(listing.goodbarber_id);
+
+      if (existing) {
+        // Update existing
+        await supabase
+          .from('listings')
+          .update(listing)
+          .eq('goodbarber_id', listing.goodbarber_id);
+      } else {
+        // Insert new
+        await supabase
+          .from('listings')
+          .insert(listing);
+      }
+      count++;
+    }
+
+    return { count };
+  }
 
   if (error) throw error;
   return { count: data.length };
