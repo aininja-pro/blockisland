@@ -42,6 +42,7 @@ Recent decisions affecting current work:
 
 - **01-01:** Supabase over SQLite for managed Postgres + built-in auth
 - **01-01:** Repository pattern for data access (src/models/*.js)
+- **02-planning:** Our system is source of truth for all listing content (not just premium status). GoodBarber Custom Map Feed pulls from our API. Admin interface needs full CRUD.
 
 ### Deferred Issues
 

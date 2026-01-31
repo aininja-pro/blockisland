@@ -17,6 +17,8 @@ Premium members always appear above basic members with fair rotation — no manu
 ### Active
 
 - [ ] Admin web interface with secure login for Rob + Chamber staff
+- [ ] **Full listing management** (create, edit, delete businesses)
+- [ ] Edit all listing fields (name, description, address, phone, website, coordinates, images)
 - [ ] Premium toggle on/off per business listing
 - [ ] View current rotation order and premium member list
 - [ ] Database storing listings with premium flag and rotation metadata
@@ -60,10 +62,11 @@ Premium members always appear above basic members with fair rotation — no manu
 - Premium members should get value for their investment
 
 **The Solution:**
-- External backend feeds listings to GoodBarber in desired order
+- External backend serves as source of truth for all listings
 - App looks and works identically to users
-- GoodBarber pulls from our endpoint instead of its internal CMS
-- Hybrid approach: GoodBarber for content editing, external system for premium/sorting
+- GoodBarber Custom Map Feed pulls from our API endpoint
+- All listing management (add/edit/delete) happens in our admin dashboard
+- GoodBarber just displays what we feed it
 
 **Stakeholders:**
 - Rob Lucier (Client) — app owner, primary admin
@@ -72,8 +75,8 @@ Premium members always appear above basic members with fair rotation — no manu
 
 ## Constraints
 
-- **Data Source**: Good Barber remains source of truth for content; external system only manages premium status and sorting
-- **Integration**: Must work with GoodBarber's custom feed API
+- **Data Source**: Our system is source of truth for all listing content; GoodBarber pulls from our Custom Map Feed
+- **Integration**: Must work with GoodBarber's Custom Map Feed extension
 - **Geo Data**: Must preserve lat/long coordinates for map functionality
 - **Categories**: Must support all existing categories with independent rotation per category
 - **Access**: Small team access (2-3 admins) with same permissions
@@ -83,9 +86,9 @@ Premium members always appear above basic members with fair rotation — no manu
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| External backend vs GoodBarber native | GoodBarber doesn't support custom sorting/rotation natively | — Pending |
-| Hybrid data approach | Keep content editing in GoodBarber, only manage premium externally | — Pending |
-| Daily rotation (not per-request) | Simpler, still fair, discussed in kickoff call | — Pending |
+| External backend vs GoodBarber native | GoodBarber doesn't support custom sorting/rotation natively | External backend |
+| Our system as source of truth | GoodBarber Custom Map Feed pulls from us; all edits happen in our admin | Our system is source of truth |
+| Daily rotation (not per-request) | Simpler, still fair, discussed in kickoff call | Daily rotation |
 | Supabase for database + auth | Free tier covers needs, built-in auth simplifies admin (Phase 5), managed = less ops | Supabase |
 | Express.js for API | Simple, well-documented, deploys easily to Render | Express.js |
 

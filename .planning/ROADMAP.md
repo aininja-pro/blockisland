@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build an external backend that manages premium listing status and rotation for the Block Island Directory App. The system will provide a sorted JSON feed to GoodBarber, placing premium members at the top with fair daily rotation, while preserving all existing functionality. A simple admin interface allows Chamber staff to manage premium status.
+Build an external backend that serves as the source of truth for all Block Island Directory App listings. The system provides a sorted JSON feed to GoodBarber via Custom Map Feed, placing premium members at the top with fair daily rotation. A full admin interface allows Chamber staff to manage listings, premium status, and view rotation order. GoodBarber displays what we feed it - all content management happens in our system.
 
 ## Domain Expertise
 
@@ -18,7 +18,7 @@ None
 - [ ] **Phase 2: Data Import** - Import existing listings from GoodBarber, preserve geo data
 - [ ] **Phase 3: Premium Logic** - Premium flag, daily rotation algorithm, per-category rotation
 - [ ] **Phase 4: API Endpoint** - JSON feed endpoint returning sorted listings for GoodBarber
-- [ ] **Phase 5: Admin Interface** - Secure login, premium toggle, rotation view for Chamber staff
+- [ ] **Phase 5: Admin Interface** - Full listing CRUD, premium toggle, rotation view for Chamber staff
 - [ ] **Phase 6: Integration & Docs** - GoodBarber custom feed integration, admin guide documentation
 
 ## Phase Details
@@ -73,16 +73,19 @@ Key deliverables:
 - Format compatible with GoodBarber custom feed
 
 ### Phase 5: Admin Interface
-**Goal**: Web admin for Chamber staff to manage premium status
+**Goal**: Full web admin for Chamber staff to manage all listings and premium status
 **Depends on**: Phase 3
 **Research**: Unlikely (standard admin patterns)
 **Plans**: TBD
 
 Key deliverables:
 - Secure login (Rob + Chamber staff)
+- **Full listing CRUD** (create, edit, delete businesses)
+- Edit all listing fields (name, description, address, phone, website, coordinates, images)
 - Premium toggle on/off per business
 - View current rotation order
 - View premium member list
+- Category management
 
 ### Phase 6: Integration & Docs
 **Goal**: Complete GoodBarber integration and create admin documentation
