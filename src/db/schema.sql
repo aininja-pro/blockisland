@@ -31,6 +31,10 @@ CREATE INDEX IF NOT EXISTS idx_listings_is_premium ON listings(is_premium);
 -- Index for GoodBarber sync lookups
 CREATE INDEX IF NOT EXISTS idx_listings_goodbarber_id ON listings(goodbarber_id);
 
+-- Unique constraint for GoodBarber ID (enables upsert on import)
+-- Run this ONCE after initial table creation:
+ALTER TABLE listings ADD CONSTRAINT listings_goodbarber_id_unique UNIQUE (goodbarber_id);
+
 -- Enable Row Level Security (required for Supabase)
 ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 

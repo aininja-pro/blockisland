@@ -114,12 +114,63 @@ async function remove(id) {
   return true;
 }
 
+/**
+ * Bulk upsert listings by GoodBarber ID
+ * Inserts new records or updates existing ones based on goodbarber_id.
+ * Requires UNIQUE constraint on goodbarber_id column.
+ *
+ * @param {Array<Object>} listings - Array of listing objects with goodbarber_id
+ * @returns {Promise<{count: number}>} Number of records processed
+ */
+async function upsertByGoodBarberId(listings) {
+  if (!Array.isArray(listings) || listings.length === 0) {
+    return { count: 0 };
+  }
+
+  // Add timestamps
+  const now = new Date().toISOString();
+  const listingsWithTimestamps = listings.map(listing => ({
+    ...listing,
+    updated_at: now,
+  }));
+
+  const { data, error } = await supabase
+    .from('listings')
+    .upsert(listingsWithTimestamps, {
+      onConflict: 'goodbarber_id',
+      ignoreDuplicates: false,
+    })
+    .select();
+
+  if (error) throw error;
+  return { count: data.length };
+}
+
+/**
+ * Get a listing by GoodBarber ID
+ * @param {string} goodbarberId - GoodBarber ID
+ * @returns {Promise<Object|null>} Listing object or null if not found
+ */
+async function getByGoodBarberId(goodbarberId) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('goodbarber_id', goodbarberId)
+    .single();
+
+  if (error && error.code === 'PGRST116') return null; // Not found
+  if (error) throw error;
+  return data;
+}
+
 module.exports = {
   getAll,
   getById,
+  getByGoodBarberId,
   getByCategory,
   getPremiumByCategory,
   create,
   update,
   delete: remove,
+  upsertByGoodBarberId,
 };
