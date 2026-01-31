@@ -1,0 +1,20 @@
+{
+  "name": "blockisland",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.93.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  }
+}
