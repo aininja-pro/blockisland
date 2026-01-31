@@ -86,7 +86,8 @@ Premium members always appear above basic members with fair rotation — no manu
 | External backend vs GoodBarber native | GoodBarber doesn't support custom sorting/rotation natively | — Pending |
 | Hybrid data approach | Keep content editing in GoodBarber, only manage premium externally | — Pending |
 | Daily rotation (not per-request) | Simpler, still fair, discussed in kickoff call | — Pending |
-| Tech stack flexible | Open to simplest approach that works | — Pending |
+| Supabase for database + auth | Free tier covers needs, built-in auth simplifies admin (Phase 5), managed = less ops | Supabase |
+| Express.js for API | Simple, well-documented, deploys easily to Render | Express.js |
 
 ---
 *Last updated: 2026-01-31 after initialization*
