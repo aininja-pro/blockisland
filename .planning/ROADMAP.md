@@ -1,0 +1,112 @@
+# Roadmap: Block Island Premium Listing System
+
+## Overview
+
+Build an external backend that manages premium listing status and rotation for the Block Island Directory App. The system will provide a sorted JSON feed to GoodBarber, placing premium members at the top with fair daily rotation, while preserving all existing functionality. A simple admin interface allows Chamber staff to manage premium status.
+
+## Domain Expertise
+
+None
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+- [ ] **Phase 1: Foundation** - Database setup, project scaffolding, basic data models
+- [ ] **Phase 2: Data Import** - Import existing listings from GoodBarber, preserve geo data
+- [ ] **Phase 3: Premium Logic** - Premium flag, daily rotation algorithm, per-category rotation
+- [ ] **Phase 4: API Endpoint** - JSON feed endpoint returning sorted listings for GoodBarber
+- [ ] **Phase 5: Admin Interface** - Secure login, premium toggle, rotation view for Chamber staff
+- [ ] **Phase 6: Integration & Docs** - GoodBarber custom feed integration, admin guide documentation
+
+## Phase Details
+
+### Phase 1: Foundation
+**Goal**: Set up project structure, database, and basic data models for listings
+**Depends on**: Nothing (first phase)
+**Research**: Unlikely (established patterns)
+**Plans**: TBD
+
+Key deliverables:
+- Project scaffolding (tech stack decision)
+- Database schema for listings with premium flag and rotation metadata
+- Basic listing model with all required fields (name, category, lat/long, etc.)
+
+### Phase 2: Data Import
+**Goal**: Import all existing listings from GoodBarber preserving data integrity
+**Depends on**: Phase 1
+**Research**: Likely (GoodBarber data format)
+**Research topics**: GoodBarber export API/format, data structure, field mapping
+**Plans**: TBD
+
+Key deliverables:
+- Data import script/tool
+- All existing listings in database
+- Verified lat/long coordinates preserved
+- Category assignments intact
+
+### Phase 3: Premium Logic
+**Goal**: Implement premium flag and fair daily rotation algorithm
+**Depends on**: Phase 2
+**Research**: Unlikely (internal algorithm)
+**Plans**: TBD
+
+Key deliverables:
+- Premium flag on listings
+- Daily rotation algorithm (fair visibility)
+- Per-category rotation (independent rotation within each category)
+- Rotation metadata tracking
+
+### Phase 4: API Endpoint
+**Goal**: JSON API returning listings sorted correctly for GoodBarber consumption
+**Depends on**: Phase 3
+**Research**: Likely (GoodBarber custom feed spec)
+**Research topics**: GoodBarber custom feed API requirements, expected JSON format, field names
+**Plans**: TBD
+
+Key deliverables:
+- JSON endpoint returning sorted listings
+- Premium members first (rotated), then basic members
+- Per-category endpoints or filtering
+- Format compatible with GoodBarber custom feed
+
+### Phase 5: Admin Interface
+**Goal**: Web admin for Chamber staff to manage premium status
+**Depends on**: Phase 3
+**Research**: Unlikely (standard admin patterns)
+**Plans**: TBD
+
+Key deliverables:
+- Secure login (Rob + Chamber staff)
+- Premium toggle on/off per business
+- View current rotation order
+- View premium member list
+
+### Phase 6: Integration & Docs
+**Goal**: Complete GoodBarber integration and create admin documentation
+**Depends on**: Phase 4, Phase 5
+**Research**: Likely (GoodBarber configuration)
+**Research topics**: GoodBarber custom feed configuration steps, testing in GoodBarber
+**Plans**: TBD
+
+Key deliverables:
+- GoodBarber configured to pull from our endpoint
+- App verified working with new feed
+- Admin guide for Chamber staff
+- System overview documentation
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Foundation | 0/TBD | Not started | - |
+| 2. Data Import | 0/TBD | Not started | - |
+| 3. Premium Logic | 0/TBD | Not started | - |
+| 4. API Endpoint | 0/TBD | Not started | - |
+| 5. Admin Interface | 0/TBD | Not started | - |
+| 6. Integration & Docs | 0/TBD | Not started | - |
