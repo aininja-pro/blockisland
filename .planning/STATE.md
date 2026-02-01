@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Premium members always appear above basic members with fair rotation — no manual sorting required, "set it and forget it" functionality.
-**Current focus:** Phase 6 — Integration & Docs (complete)
+**Current focus:** Phase 7 — Section & Subcategory Support
 
 ## Current Position
 
-Phase: 6 of 6 (Integration & Docs)
-Plan: 1 of 1 in current phase
-Status: Complete
-Last activity: 2026-02-01 — Completed 06-01-PLAN.md
+Phase: 7 of 7 (Section & Subcategory Support)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-02-01 — Added Phase 7 to roadmap
 
-Progress: ██████████ 100%
+Progress: █████████░ 90%
 
 ## Performance Metrics
 

@@ -20,6 +20,7 @@ None
 - [x] **Phase 4: API Endpoint** - JSON feed endpoint returning sorted listings for GoodBarber
 - [x] **Phase 5: Admin Interface** - Full listing CRUD, premium toggle, rotation view for Chamber staff (4/4 plans)
 - [x] **Phase 6: Integration & Docs** - GoodBarber custom feed integration, admin guide documentation (1/1 plans)
+- [ ] **Phase 7: Section & Subcategory Support** - Multi-category data model, "Appears In" UI, section-based rotation
 
 ## Phase Details
 
@@ -100,10 +101,32 @@ Key deliverables:
 - Admin guide for Chamber staff
 - System overview documentation
 
+### Phase 7: Section & Subcategory Support
+**Goal**: Update data model to support GoodBarber's section/subcategory hierarchy with "Appears In" functionality
+**Depends on**: Phase 6
+**Research**: Unlikely (data model change based on discovered requirements)
+**Plans**: TBD
+
+Key deliverables:
+- Database schema update: `section` field + `listing_subcategories` junction table
+- Admin UI: Section dropdown + subcategory checkboxes ("Appears In" like GoodBarber)
+- API update: Support `?section=X` and `?section=X&sub=Y` filtering
+- Premium rotation at section level (Option A - same position across all subcategories)
+- Seed data: All known sections and subcategories from GoodBarber
+
+Sections to support:
+- Ferries, Airlines, Taxis, Bike/Moped/Cars
+- Food & Drink (with 14 subcategories)
+- Shopping, Sites & Landmarks, Galleries & Theaters
+- Sports & Recreation, Museums, Spas & Wellness, Tours
+- Hotels, Inns, B&Bs, Marinas
+- Community Places, Services, Weddings & Special Events
+- Real Estate
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -113,3 +136,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. API Endpoint | 1/1 | Complete | 2026-01-31 |
 | 5. Admin Interface | 4/4 | Complete | 2026-02-01 |
 | 6. Integration & Docs | 1/1 | Complete | 2026-02-01 |
+| 7. Section & Subcategory | 0/TBD | Not started | - |
