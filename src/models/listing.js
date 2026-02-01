@@ -276,12 +276,49 @@ async function getAllCategories() {
   return categories;
 }
 
+/**
+ * Get listings sorted for API consumption.
+ * Premium listings first (by rotation_position), then non-premium (by name).
+ * @param {string} category - Category name
+ * @returns {Promise<Array>} Sorted array of listings
+ */
+async function getSortedByCategory(category) {
+  // Query with proper sorting: premium first by rotation_position, then non-premium by name
+  // Supabase doesn't support CASE WHEN in order, so we query and sort in JS
+  // But we can use a workaround: query twice and combine, or use RPC
+
+  // Approach: Get all listings in category, sort in JS for correctness
+  // This is fine for <100 listings per category typical for local directories
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('category', category);
+
+  if (error) throw error;
+
+  // Sort: premium first (by rotation_position ASC), then non-premium (by name ASC)
+  return data.sort((a, b) => {
+    // Premium listings come first
+    if (a.is_premium && !b.is_premium) return -1;
+    if (!a.is_premium && b.is_premium) return 1;
+
+    // Both premium: sort by rotation_position
+    if (a.is_premium && b.is_premium) {
+      return (a.rotation_position || 0) - (b.rotation_position || 0);
+    }
+
+    // Both non-premium: sort by name
+    return (a.name || '').localeCompare(b.name || '');
+  });
+}
+
 module.exports = {
   getAll,
   getById,
   getByGoodBarberId,
   getByCategory,
   getPremiumByCategory,
+  getSortedByCategory,
   create,
   update,
   delete: remove,
