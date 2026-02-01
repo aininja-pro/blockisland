@@ -2,19 +2,20 @@ const { supabase } = require('../db/supabase');
 const listing = require('../models/listing');
 
 /**
- * Rotate premium listings within a single category.
+ * Rotate premium listings within a single section.
  * Moves the first listing (position 1) to the end and renumbers all others.
+ * This ensures consistent rotation across all subcategories within a section.
  *
- * @param {string} category - Category name to rotate
+ * @param {string} section - Section name to rotate
  * @returns {Promise<Object>} Rotation result
  */
-async function rotateCategoryPremiums(category) {
-  // Get all premium listings in category ordered by rotation_position
-  const premiums = await listing.getPremiumByCategory(category);
+async function rotateSectionPremiums(section) {
+  // Get all premium listings in section ordered by rotation_position
+  const premiums = await listing.getPremiumBySection(section);
 
   // If 0 or 1 premium listings, no rotation needed
   if (!premiums || premiums.length < 2) {
-    return { rotated: false, reason: `Only ${premiums?.length || 0} premium listing(s) in category` };
+    return { rotated: false, reason: `Only ${premiums?.length || 0} premium listing(s) in section` };
   }
 
   // First listing (position 1) moves to end
@@ -51,30 +52,34 @@ async function rotateCategoryPremiums(category) {
 }
 
 /**
- * Rotate all categories that have premium listings.
+ * Rotate all sections that have premium listings.
  *
  * @returns {Promise<Object>} Summary of all rotations
  */
-async function rotateAllCategories() {
-  // Get all distinct categories with premium listings
-  const categories = await listing.getAllCategories();
+async function rotateAllSections() {
+  // Get all distinct sections with premium listings
+  const sections = await listing.getAllSections();
 
-  if (!categories || categories.length === 0) {
-    return { categoriesProcessed: 0, rotations: [] };
+  if (!sections || sections.length === 0) {
+    return { sectionsProcessed: 0, rotations: [] };
   }
 
   const rotations = [];
 
-  for (const category of categories) {
-    const result = await rotateCategoryPremiums(category);
-    rotations.push({ category, ...result });
+  for (const section of sections) {
+    const result = await rotateSectionPremiums(section);
+    rotations.push({ section, ...result });
   }
 
   return {
-    categoriesProcessed: categories.length,
+    sectionsProcessed: sections.length,
     rotations,
   };
 }
+
+// Backward compatibility aliases
+const rotateCategoryPremiums = rotateSectionPremiums;
+const rotateAllCategories = rotateAllSections;
 
 /**
  * Check if rotation should run today.
@@ -111,7 +116,11 @@ async function needsRotation() {
 }
 
 module.exports = {
+  // Section-based rotation (primary)
+  rotateSectionPremiums,
+  rotateAllSections,
+  needsRotation,
+  // Backward compatibility aliases
   rotateCategoryPremiums,
   rotateAllCategories,
-  needsRotation,
 };
