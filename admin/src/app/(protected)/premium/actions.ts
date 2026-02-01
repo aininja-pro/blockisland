@@ -63,3 +63,21 @@ export async function togglePremiumAction(listingId: string, isPremium: boolean)
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+export async function togglePublishedAction(listingId: string, isPublished: boolean) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('listings')
+    .update({ is_published: isPublished })
+    .eq('id', listingId)
+
+  if (error) {
+    console.error('Error toggling published status:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/listings')
+  revalidatePath('/dashboard')
+  return { success: true }
+}

@@ -19,6 +19,7 @@ interface ColumnsProps {
   onEdit: (listing: Listing) => void
   onDelete: (listing: Listing) => void
   onTogglePremium: (listingId: string, isPremium: boolean) => Promise<void>
+  onTogglePublished: (listingId: string, isPublished: boolean) => Promise<void>
   categories: CategoryWithChildren[]
   listingCategoryIds: Record<string, string[]>
 }
@@ -65,7 +66,7 @@ function getAppearsIn(
   return appearances
 }
 
-export function getColumns({ onEdit, onDelete, onTogglePremium, categories, listingCategoryIds }: ColumnsProps): ColumnDef<Listing>[] {
+export function getColumns({ onEdit, onDelete, onTogglePremium, onTogglePublished, categories, listingCategoryIds }: ColumnsProps): ColumnDef<Listing>[] {
   const categoryLookup = buildCategoryLookup(categories)
 
   return [
@@ -176,6 +177,33 @@ export function getColumns({ onEdit, onDelete, onTogglePremium, categories, list
             )}
           </div>
         )
+      },
+    },
+    {
+      accessorKey: 'is_published',
+      header: 'Status',
+      cell: ({ row }) => {
+        const listing = row.original
+        const isPublished = listing.is_published !== false // Default to true if undefined
+        return (
+          <button
+            onClick={() => onTogglePublished(listing.id, !isPublished)}
+            className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+              isPublished
+                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800'
+            }`}
+          >
+            {isPublished ? 'Published' : 'Draft'}
+          </button>
+        )
+      },
+      filterFn: (row, id, value) => {
+        if (value === 'all') return true
+        const isPublished = row.getValue(id) !== false
+        if (value === 'published') return isPublished
+        if (value === 'draft') return !isPublished
+        return true
       },
     },
     {

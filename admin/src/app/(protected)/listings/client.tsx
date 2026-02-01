@@ -11,7 +11,7 @@ import { Listing } from '@/lib/queries/listings'
 import { CategoryWithChildren } from '@/lib/queries/categories'
 import { ListingDialog } from '@/components/listings/listing-dialog'
 import { DeleteDialog } from '@/components/listings/delete-dialog'
-import { togglePremiumAction } from '@/app/(protected)/premium/actions'
+import { togglePremiumAction, togglePublishedAction } from '@/app/(protected)/premium/actions'
 
 interface ListingsClientProps {
   listings: Listing[]
@@ -58,6 +58,16 @@ export function ListingsClient({ listings, filterCategories, categories, listing
     router.refresh()
   }
 
+  const handleTogglePublished = async (listingId: string, isPublished: boolean) => {
+    const result = await togglePublishedAction(listingId, isPublished)
+    if (result.error) {
+      toast.error(result.error)
+      throw new Error(result.error)
+    }
+    toast.success(isPublished ? 'Listing published' : 'Listing set to draft')
+    router.refresh()
+  }
+
   const handleDialogClose = (refresh?: boolean) => {
     setDialogOpen(false)
     setEditListing(null)
@@ -78,6 +88,7 @@ export function ListingsClient({ listings, filterCategories, categories, listing
     onEdit: handleEdit,
     onDelete: handleDelete,
     onTogglePremium: handleTogglePremium,
+    onTogglePublished: handleTogglePublished,
     categories,
     listingCategoryIds,
   })
@@ -95,6 +106,8 @@ export function ListingsClient({ listings, filterCategories, categories, listing
         columns={columns}
         data={listings}
         categories={filterCategories}
+        sectionCategories={categories}
+        listingCategoryIds={listingCategoryIds}
         onBulkDelete={handleBulkDelete}
       />
 

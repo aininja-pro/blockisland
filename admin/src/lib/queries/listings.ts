@@ -15,6 +15,7 @@ export interface Listing {
   website: string | null
   image_url: string | null
   is_premium: boolean
+  is_published: boolean
   rotation_position: number | null
   last_rotated_at: string | null
   created_at: string
@@ -35,6 +36,7 @@ export interface ListingInsert {
   website?: string | null
   image_url?: string | null
   is_premium?: boolean
+  is_published?: boolean
 }
 
 export type ListingUpdate = Partial<ListingInsert>
@@ -127,6 +129,23 @@ export async function deleteListings(ids: string[]): Promise<void> {
     console.error('Error deleting listings:', error)
     throw error
   }
+}
+
+export async function togglePublished(id: string, isPublished: boolean): Promise<Listing> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('listings')
+    .update({ is_published: isPublished })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error toggling published status:', error)
+    throw error
+  }
+
+  return data
 }
 
 export async function getCategories(): Promise<string[]> {

@@ -85,6 +85,15 @@ function sortListings(listings) {
 }
 
 /**
+ * Filter to only include published listings.
+ * @param {Array} listings - Array of listings
+ * @returns {Array} Only published listings
+ */
+function filterPublished(listings) {
+  return listings.filter(l => l.is_published !== false);
+}
+
+/**
  * GET /maps
  * Returns all listings sorted for GoodBarber Custom Map Feed.
  * Premium listings appear first (by rotation_position) within each section.
@@ -140,8 +149,9 @@ router.get('/maps', async (req, res) => {
       }
     }
 
-    // Transform to GoodBarber format
-    const items = listings.map(transformToGoodBarber);
+    // Filter to only published listings, then transform to GoodBarber format
+    const publishedListings = filterPublished(listings);
+    const items = publishedListings.map(transformToGoodBarber);
 
     res.json({
       items,
