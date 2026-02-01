@@ -13,13 +13,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Listing } from '@/lib/queries/listings'
+import { PremiumToggle } from '@/components/premium/premium-toggle'
 
 interface ColumnsProps {
   onEdit: (listing: Listing) => void
   onDelete: (listing: Listing) => void
+  onTogglePremium: (listingId: string, isPremium: boolean) => Promise<void>
 }
 
-export function getColumns({ onEdit, onDelete }: ColumnsProps): ColumnDef<Listing>[] {
+export function getColumns({ onEdit, onDelete, onTogglePremium }: ColumnsProps): ColumnDef<Listing>[] {
   return [
     {
       id: 'select',
@@ -57,9 +59,14 @@ export function getColumns({ onEdit, onDelete }: ColumnsProps): ColumnDef<Listin
           </Button>
         )
       },
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue('name')}</div>
-      ),
+      cell: ({ row }) => {
+        const isPremium = row.getValue('is_premium')
+        return (
+          <div className={`font-medium ${isPremium ? 'pl-2 border-l-2 border-yellow-400' : ''}`}>
+            {row.getValue('name')}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'category',
@@ -84,15 +91,16 @@ export function getColumns({ onEdit, onDelete }: ColumnsProps): ColumnDef<Listin
     },
     {
       accessorKey: 'is_premium',
-      header: 'Status',
+      header: 'Premium',
       cell: ({ row }) => {
-        const isPremium = row.getValue('is_premium')
-        return isPremium ? (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-            Premium
-          </Badge>
-        ) : (
-          <Badge variant="secondary">Basic</Badge>
+        const listing = row.original
+        return (
+          <PremiumToggle
+            listingId={listing.id}
+            isPremium={listing.is_premium}
+            onToggle={onTogglePremium}
+            compact
+          />
         )
       },
       filterFn: (row, id, value) => {

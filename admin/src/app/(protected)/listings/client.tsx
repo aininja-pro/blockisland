@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/listings/data-table'
@@ -9,6 +10,7 @@ import { getColumns } from '@/components/listings/columns'
 import { Listing } from '@/lib/queries/listings'
 import { ListingDialog } from '@/components/listings/listing-dialog'
 import { DeleteDialog } from '@/components/listings/delete-dialog'
+import { togglePremiumAction } from '@/app/(protected)/premium/actions'
 
 interface ListingsClientProps {
   listings: Listing[]
@@ -40,6 +42,16 @@ export function ListingsClient({ listings, categories }: ListingsClientProps) {
     setBulkDeleteListings(listings)
   }
 
+  const handleTogglePremium = async (listingId: string, isPremium: boolean) => {
+    const result = await togglePremiumAction(listingId, isPremium)
+    if (result.error) {
+      toast.error(result.error)
+      throw new Error(result.error)
+    }
+    toast.success(isPremium ? 'Added to premium' : 'Removed from premium')
+    router.refresh()
+  }
+
   const handleDialogClose = (refresh?: boolean) => {
     setDialogOpen(false)
     setEditListing(null)
@@ -59,6 +71,7 @@ export function ListingsClient({ listings, categories }: ListingsClientProps) {
   const columns = getColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
+    onTogglePremium: handleTogglePremium,
   })
 
   return (
