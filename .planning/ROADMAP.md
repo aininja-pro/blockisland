@@ -18,7 +18,7 @@ None
 - [x] **Phase 2: Data Import** - Import existing listings from GoodBarber, preserve geo data
 - [x] **Phase 3: Premium Logic** - Premium flag, daily rotation algorithm, per-category rotation
 - [x] **Phase 4: API Endpoint** - JSON feed endpoint returning sorted listings for GoodBarber
-- [ ] **Phase 5: Admin Interface** - Full listing CRUD, premium toggle, rotation view for Chamber staff (1/4 plans)
+- [ ] **Phase 5: Admin Interface** - Full listing CRUD, premium toggle, rotation view for Chamber staff (2/4 plans)
 - [ ] **Phase 6: Integration & Docs** - GoodBarber custom feed integration, admin guide documentation
 
 ## Phase Details
@@ -111,5 +111,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Data Import | 1/1 | Complete | 2026-01-31 |
 | 3. Premium Logic | 1/1 | Complete | 2026-02-01 |
 | 4. API Endpoint | 1/1 | Complete | 2026-01-31 |
-| 5. Admin Interface | 1/4 | In progress | - |
+| 5. Admin Interface | 2/4 | In progress | - |
 | 6. Integration & Docs | 0/TBD | Not started | - |
