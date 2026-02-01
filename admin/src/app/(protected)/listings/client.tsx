@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Plus } from 'lucide-react'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/listings/data-table'
 import { getColumns } from '@/components/listings/columns'
 import { Listing } from '@/lib/queries/listings'
+import { Subcategory } from '@/lib/queries/subcategories'
 import { ListingDialog } from '@/components/listings/listing-dialog'
 import { DeleteDialog } from '@/components/listings/delete-dialog'
 import { togglePremiumAction } from '@/app/(protected)/premium/actions'
@@ -15,17 +16,21 @@ import { togglePremiumAction } from '@/app/(protected)/premium/actions'
 interface ListingsClientProps {
   listings: Listing[]
   categories: string[]
+  subcategories: Subcategory[]
+  listingSubcategories: Record<string, string[]>
 }
 
-export function ListingsClient({ listings, categories }: ListingsClientProps) {
+export function ListingsClient({ listings, categories, subcategories, listingSubcategories }: ListingsClientProps) {
   const router = useRouter()
   const [editListing, setEditListing] = useState<Listing | null>(null)
   const [deleteListing, setDeleteListing] = useState<Listing | null>(null)
   const [bulkDeleteListings, setBulkDeleteListings] = useState<Listing[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedSubcategoryIds, setSelectedSubcategoryIds] = useState<string[]>([])
 
   const handleEdit = (listing: Listing) => {
     setEditListing(listing)
+    setSelectedSubcategoryIds(listingSubcategories[listing.id] || [])
     setDialogOpen(true)
   }
 
@@ -35,6 +40,7 @@ export function ListingsClient({ listings, categories }: ListingsClientProps) {
 
   const handleCreate = () => {
     setEditListing(null)
+    setSelectedSubcategoryIds([])
     setDialogOpen(true)
   }
 
@@ -94,7 +100,8 @@ export function ListingsClient({ listings, categories }: ListingsClientProps) {
         open={dialogOpen}
         onClose={handleDialogClose}
         listing={editListing}
-        categories={categories}
+        subcategories={subcategories}
+        selectedSubcategoryIds={selectedSubcategoryIds}
       />
 
       <DeleteDialog

@@ -11,20 +11,23 @@ import {
 } from '@/components/ui/dialog'
 import { ListingForm, ListingFormData } from './listing-form'
 import { Listing } from '@/lib/queries/listings'
+import { Subcategory } from '@/lib/queries/subcategories'
 import { createListingAction, updateListingAction } from '@/app/(protected)/listings/actions'
 
 interface ListingDialogProps {
   open: boolean
   onClose: (refresh?: boolean) => void
   listing: Listing | null
-  categories: string[]
+  subcategories: Subcategory[]
+  selectedSubcategoryIds?: string[]
 }
 
 export function ListingDialog({
   open,
   onClose,
   listing,
-  categories,
+  subcategories,
+  selectedSubcategoryIds,
 }: ListingDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
 
@@ -73,7 +76,8 @@ export function ListingDialog({
         </DialogHeader>
         <ListingForm
           listing={listing}
-          categories={categories}
+          subcategories={subcategories}
+          selectedSubcategoryIds={selectedSubcategoryIds}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           isLoading={isLoading}
