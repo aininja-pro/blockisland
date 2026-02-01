@@ -6,12 +6,15 @@ const listing = require('../models/listing');
  * Moves the first listing (position 1) to the end and renumbers all others.
  * This ensures consistent rotation across all subcategories within a section.
  *
+ * Uses the new categories table structure via getPremiumBySectionNew.
+ *
  * @param {string} section - Section name to rotate
  * @returns {Promise<Object>} Rotation result
  */
 async function rotateSectionPremiums(section) {
   // Get all premium listings in section ordered by rotation_position
-  const premiums = await listing.getPremiumBySection(section);
+  // Uses categories table via getPremiumBySectionNew
+  const premiums = await listing.getPremiumBySectionNew(section);
 
   // If 0 or 1 premium listings, no rotation needed
   if (!premiums || premiums.length < 2) {

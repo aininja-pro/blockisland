@@ -41,10 +41,20 @@ This document provides technical documentation for developers maintaining the sy
 │  ├── latitude, longitude (for map pins)                            │
 │  ├── description, image_url                                        │
 │  ├── is_premium (boolean)                                          │
-│  ├── rotation_position (int) - position within category            │
+│  ├── rotation_position (int) - position within section             │
 │  ├── last_rotated_at (timestamp)                                   │
 │  ├── goodbarber_id (for import mapping)                            │
 │  └── created_at, updated_at                                        │
+│                                                                     │
+│  Table: categories (hierarchical sections/subcategories)           │
+│  ├── id (uuid, PK)                                                  │
+│  ├── name (e.g., "Food & Drink" or "Medical")                      │
+│  ├── parent_id (null=section, uuid=subcategory)                    │
+│  └── display_order                                                  │
+│                                                                     │
+│  Table: listing_categories (many-to-many junction)                 │
+│  ├── listing_id → listings.id                                       │
+│  └── category_id → categories.id                                    │
 └─────────────────────────────────┬───────────────────────────────────┘
                                   │
                                   │ Supabase SSR Auth
@@ -82,10 +92,11 @@ This document provides technical documentation for developers maintaining the sy
 - Supabase JS client
 - CORS enabled
 
-**Key Endpoint:**
+**Key Endpoints:**
 ```
-GET /api/feed/maps
-GET /api/feed/maps?category=Restaurants
+GET /api/feed/maps                        # All listings
+GET /api/feed/maps?section=Food%20%26%20Drink  # By section (uses categories table)
+GET /api/feed/maps?category=Restaurants   # Legacy category filter
 ```
 
 ### 2. Next.js Admin Interface
@@ -114,7 +125,8 @@ GET /api/feed/maps?category=Restaurants
 Returns listings in GoodBarber Custom Map Feed format.
 
 **Query Parameters:**
-- `category` (optional) - Filter by category name
+- `section` (recommended) - Filter by section name (e.g., "Community Places", "Food & Drink"). Uses the hierarchical categories table.
+- `category` (legacy) - Filter by old category column (deprecated)
 
 **Response Format:**
 ```json
@@ -148,11 +160,16 @@ Returns listings in GoodBarber Custom Map Feed format.
 **Sorting Order:**
 1. Premium listings first (by `rotation_position` ascending)
 2. Non-premium listings second (alphabetically by name)
-3. When no category specified: grouped by category (alphabetically)
+3. When no section specified: grouped by section (alphabetically)
+
+**Subcategory Tabs (subtype field):**
+- When using `?section=X`, each listing includes a `subtype` field set to its subcategory name
+- GoodBarber reads these `subtype` values and creates filter tabs automatically
+- Example: For "Community Places" section, items have subtypes like "Medical", "Laundry", "ATMs"
 
 **Automatic Rotation:**
 - On each request, checks if rotation is needed (once per day)
-- If needed, rotates all categories before returning data
+- If needed, rotates all sections before returning data
 
 ---
 
@@ -161,7 +178,8 @@ Returns listings in GoodBarber Custom Map Feed format.
 ### How It Works
 
 1. **Check if needed:** Compare `last_rotated_at` timestamp to today's date
-2. **For each category with premium listings:**
+2. **For each section with premium listings:**
+   - Uses `listing_categories` junction table to find premium listings in section
    - Get all premium listings ordered by `rotation_position`
    - Move position 1 to the end (max position)
    - Decrement all other positions by 1
@@ -171,7 +189,7 @@ Returns listings in GoodBarber Custom Map Feed format.
 
 Before rotation (Day 1):
 ```
-Restaurants:
+Food & Drink section:
   Position 1: Joe's Pizza
   Position 2: Sam's Seafood
   Position 3: Beach Bistro
@@ -179,7 +197,7 @@ Restaurants:
 
 After rotation (Day 2):
 ```
-Restaurants:
+Food & Drink section:
   Position 1: Sam's Seafood
   Position 2: Beach Bistro
   Position 3: Joe's Pizza
@@ -189,8 +207,13 @@ Restaurants:
 
 - `src/services/rotation.js` - Rotation logic
   - `needsRotation()` - Check if rotation needed today
-  - `rotateAllCategories()` - Execute rotation for all categories
-  - `rotateCategoryPremiums(category)` - Rotate single category
+  - `rotateAllSections()` - Execute rotation for all sections
+  - `rotateSectionPremiums(section)` - Rotate single section
+
+- `src/models/listing.js` - Section/category queries
+  - `getListingsForSection(sectionName)` - Get listings via categories table with subcategory names
+  - `getPremiumBySectionNew(sectionName)` - Get premium listings for rotation
+  - `getAllSections()` - Get all sections with premium listings
 
 ---
 
@@ -281,13 +304,14 @@ Open two terminals:
 
 ### Database Schema
 
-The `listings` table should already exist from Phase 1. Key columns:
+The database uses a hierarchical category structure with junction tables:
 
 ```sql
+-- Main listings table
 CREATE TABLE listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  category TEXT NOT NULL,
+  category TEXT NOT NULL,  -- Legacy, use listing_categories instead
   address TEXT,
   latitude DECIMAL(10, 7),
   longitude DECIMAL(10, 7),
@@ -303,7 +327,28 @@ CREATE TABLE listings (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Hierarchical categories (sections and subcategories)
+CREATE TABLE categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  parent_id UUID REFERENCES categories(id),  -- NULL = section, UUID = subcategory
+  display_order INTEGER DEFAULT 0,
+  UNIQUE(name, parent_id)
+);
+
+-- Many-to-many: which categories a listing appears in
+CREATE TABLE listing_categories (
+  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+  PRIMARY KEY (listing_id, category_id)
+);
 ```
+
+**Category Hierarchy:**
+- Sections have `parent_id = NULL` (e.g., "Community Places", "Food & Drink")
+- Subcategories have `parent_id` pointing to their section (e.g., "Medical" → "Community Places")
+- A listing can appear in multiple categories via `listing_categories`
 
 ---
 

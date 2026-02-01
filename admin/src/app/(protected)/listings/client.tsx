@@ -78,6 +78,8 @@ export function ListingsClient({ listings, filterCategories, categories, listing
     onEdit: handleEdit,
     onDelete: handleDelete,
     onTogglePremium: handleTogglePremium,
+    categories,
+    listingCategoryIds,
   })
 
   return (

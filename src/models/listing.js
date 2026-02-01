@@ -277,11 +277,91 @@ async function getAllCategories() {
 }
 
 // ============================================================
-// Section/Subcategory Methods (Phase 7)
+// Section/Subcategory Methods (Phase 7 - Updated for categories table)
 // ============================================================
 
 /**
- * Get all listings in a section
+ * Get all listings in a section using the categories/listing_categories tables.
+ * Returns listings with subcategory_name attached for GoodBarber subtype field.
+ * @param {string} sectionName - Section name (e.g., "Community Places", "Food & Drink")
+ * @returns {Promise<Array>} Array of listings with subcategory_name
+ */
+async function getListingsForSection(sectionName) {
+  // 1. Get the section ID (parent_id is null for sections)
+  const { data: section, error: sectionError } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('name', sectionName)
+    .is('parent_id', null)
+    .single();
+
+  if (sectionError && sectionError.code === 'PGRST116') {
+    // Section not found
+    return [];
+  }
+  if (sectionError) throw sectionError;
+  if (!section) return [];
+
+  // 2. Get all subcategory IDs for this section
+  const { data: subcategories, error: subError } = await supabase
+    .from('categories')
+    .select('id, name')
+    .eq('parent_id', section.id);
+
+  if (subError) throw subError;
+
+  // Build map of subcategory ID -> name
+  const subcategoryMap = {};
+  (subcategories || []).forEach(sub => {
+    subcategoryMap[sub.id] = sub.name;
+  });
+
+  // 3. Get all category IDs (section + subcategories)
+  const allCategoryIds = [section.id, ...Object.keys(subcategoryMap)];
+
+  // 4. Get listings linked to any of these categories
+  const { data: listingCategories, error: lcError } = await supabase
+    .from('listing_categories')
+    .select('listing_id, category_id')
+    .in('category_id', allCategoryIds);
+
+  if (lcError) throw lcError;
+  if (!listingCategories || listingCategories.length === 0) return [];
+
+  // 5. Build listing ID to subcategory name map
+  // Prefer subcategory name over section name for subtype
+  const listingSubcategory = {};
+  listingCategories.forEach(lc => {
+    if (subcategoryMap[lc.category_id]) {
+      // This is a subcategory - use its name
+      listingSubcategory[lc.listing_id] = subcategoryMap[lc.category_id];
+    } else if (!listingSubcategory[lc.listing_id]) {
+      // This is the section itself - fallback if no subcategory
+      listingSubcategory[lc.listing_id] = sectionName;
+    }
+  });
+
+  // 6. Get unique listing IDs
+  const listingIds = [...new Set(listingCategories.map(lc => lc.listing_id))];
+
+  // 7. Fetch actual listings
+  const { data: listings, error: listingsError } = await supabase
+    .from('listings')
+    .select('*')
+    .in('id', listingIds);
+
+  if (listingsError) throw listingsError;
+
+  // 8. Add subcategory_name to each listing for GoodBarber subtype
+  return (listings || []).map(listing => ({
+    ...listing,
+    subcategory_name: listingSubcategory[listing.id] || sectionName,
+  }));
+}
+
+/**
+ * Get all listings in a section (DEPRECATED - uses old section column)
+ * Use getListingsForSection() instead for category-based queries.
  * @param {string} section - Section name
  * @returns {Promise<Array>} Array of listings in section
  */
@@ -362,20 +442,78 @@ async function getPremiumBySection(section) {
 }
 
 /**
- * Get all distinct sections that have premium listings
+ * Get all distinct sections that have premium listings.
+ * Uses the categories/listing_categories tables.
  * @returns {Promise<Array<string>>} Array of section names
  */
 async function getAllSections() {
-  const { data, error } = await supabase
+  // Get all premium listings
+  const { data: premiumListings, error: premiumError } = await supabase
     .from('listings')
-    .select('section')
+    .select('id')
     .eq('is_premium', true);
 
-  if (error) throw error;
+  if (premiumError) throw premiumError;
+  if (!premiumListings || premiumListings.length === 0) return [];
 
-  // Extract unique sections
-  const sections = [...new Set(data.map(row => row.section).filter(Boolean))];
-  return sections;
+  const premiumIds = premiumListings.map(l => l.id);
+
+  // Get categories linked to premium listings
+  const { data: listingCategories, error: lcError } = await supabase
+    .from('listing_categories')
+    .select('category_id')
+    .in('listing_id', premiumIds);
+
+  if (lcError) throw lcError;
+  if (!listingCategories || listingCategories.length === 0) return [];
+
+  const categoryIds = [...new Set(listingCategories.map(lc => lc.category_id))];
+
+  // Get the categories
+  const { data: categories, error: catError } = await supabase
+    .from('categories')
+    .select('id, name, parent_id')
+    .in('id', categoryIds);
+
+  if (catError) throw catError;
+
+  // For each category, find its section (either itself if parent_id is null, or its parent)
+  const sectionNames = new Set();
+
+  for (const cat of categories || []) {
+    if (cat.parent_id === null) {
+      // This is a section
+      sectionNames.add(cat.name);
+    } else {
+      // This is a subcategory - get its parent section name
+      const { data: parent, error: parentError } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('id', cat.parent_id)
+        .single();
+
+      if (!parentError && parent) {
+        sectionNames.add(parent.name);
+      }
+    }
+  }
+
+  return [...sectionNames];
+}
+
+/**
+ * Get premium listings in a section using categories table.
+ * @param {string} sectionName - Section name
+ * @returns {Promise<Array>} Array of premium listings in section
+ */
+async function getPremiumBySectionNew(sectionName) {
+  // Get all listings in section (uses categories)
+  const listings = await getListingsForSection(sectionName);
+
+  // Filter to premium only, sort by rotation_position
+  return listings
+    .filter(l => l.is_premium)
+    .sort((a, b) => (a.rotation_position || 0) - (b.rotation_position || 0));
 }
 
 /**
@@ -496,12 +634,15 @@ module.exports = {
   setPremium,
   getPremiumCount,
   getAllCategories,
-  // Section/Subcategory methods (Phase 7)
+  // Section/Subcategory methods (Phase 7 - Updated for categories table)
+  getListingsForSection,  // NEW: Uses categories table
+  getPremiumBySectionNew, // NEW: Uses categories table
+  getAllSections,         // UPDATED: Uses categories table
+  // Legacy methods (use old section column - deprecated)
   getBySection,
   getBySubcategory,
   getSortedBySection,
   getPremiumBySection,
-  getAllSections,
   getSubcategories,
   getAllSubcategories,
   setListingSubcategories,

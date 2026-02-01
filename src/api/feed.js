@@ -61,7 +61,8 @@ function transformToGoodBarber(listingData) {
     website: listingData.website || '',
     date: listingData.created_at || '',
     type: 'map',
-    subtype: listingData.section || listingData.category || '',
+    // Use subcategory_name (from getListingsForSection) for filter tabs in GoodBarber
+    subtype: listingData.subcategory_name || listingData.section || listingData.category || '',
     thumbnail: listingData.image_url || '',
     images,
   };
@@ -89,9 +90,11 @@ function sortListings(listings) {
  * Premium listings appear first (by rotation_position) within each section.
  *
  * Query params:
- * - ?section=X - Get all listings in a section
- * - ?section=X&sub=Y - Get listings in a specific subcategory
+ * - ?section=X - Get all listings in a section (uses categories table)
  * - ?category=X - Legacy: category-based filtering (backward compatibility)
+ *
+ * GoodBarber reads the "subtype" field to create filter tabs automatically.
+ * Each listing's subtype is set to its subcategory name (e.g., "Medical", "Laundry").
  */
 router.get('/maps', async (req, res) => {
   try {
@@ -101,16 +104,14 @@ router.get('/maps', async (req, res) => {
       await rotateAllSections();
     }
 
-    const { category, section, sub } = req.query;
+    const { category, section } = req.query;
     let listings;
 
-    if (section && sub) {
-      // Get listings in specific subcategory
-      listings = await listing.getBySubcategory(section, sub);
+    if (section) {
+      // Get all listings in section using categories table
+      // Returns listings with subcategory_name for filter tabs
+      listings = await listing.getListingsForSection(section);
       listings = sortListings(listings);
-    } else if (section) {
-      // Get all listings in section, sorted
-      listings = await listing.getSortedBySection(section);
     } else if (category) {
       // Legacy: category-based filtering (backward compatibility)
       listings = await listing.getSortedByCategory(category);
