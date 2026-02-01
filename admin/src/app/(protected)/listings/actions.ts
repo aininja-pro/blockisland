@@ -3,19 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { ListingFormData } from '@/components/listings/listing-form'
-import { setListingSubcategories } from '@/lib/queries/subcategories'
+import { setListingCategories } from '@/lib/queries/categories'
 
 export async function createListingAction(data: ListingFormData) {
   const supabase = await createClient()
 
-  // Extract subcategory_ids before creating listing
-  const { subcategory_ids, ...listingFields } = data
+  // Extract category_ids before creating listing
+  const { category_ids, ...listingFields } = data
 
-  // Clean up optional fields, set category = section for backward compatibility
+  // Clean up optional fields
   const cleanedData = {
     name: listingFields.name,
-    section: listingFields.section,
-    category: listingFields.section, // Backward compatibility
+    category: listingFields.category || null,
     description: listingFields.description || null,
     address: listingFields.address || null,
     phone: listingFields.phone || null,
@@ -38,9 +37,9 @@ export async function createListingAction(data: ListingFormData) {
     return { error: error.message }
   }
 
-  // Set subcategory assignments
-  if (subcategory_ids && subcategory_ids.length > 0) {
-    await setListingSubcategories(listing.id, subcategory_ids)
+  // Set category assignments
+  if (category_ids && category_ids.length > 0) {
+    await setListingCategories(listing.id, category_ids)
   }
 
   revalidatePath('/listings')
@@ -50,14 +49,13 @@ export async function createListingAction(data: ListingFormData) {
 export async function updateListingAction(id: string, data: ListingFormData) {
   const supabase = await createClient()
 
-  // Extract subcategory_ids before updating listing
-  const { subcategory_ids, ...listingFields } = data
+  // Extract category_ids before updating listing
+  const { category_ids, ...listingFields } = data
 
-  // Clean up optional fields, set category = section for backward compatibility
+  // Clean up optional fields
   const cleanedData = {
     name: listingFields.name,
-    section: listingFields.section,
-    category: listingFields.section, // Backward compatibility
+    category: listingFields.category || null,
     description: listingFields.description || null,
     address: listingFields.address || null,
     phone: listingFields.phone || null,
@@ -79,8 +77,8 @@ export async function updateListingAction(id: string, data: ListingFormData) {
     return { error: error.message }
   }
 
-  // Update subcategory assignments
-  await setListingSubcategories(id, subcategory_ids || [])
+  // Update category assignments
+  await setListingCategories(id, category_ids || [])
 
   revalidatePath('/listings')
   return { success: true }

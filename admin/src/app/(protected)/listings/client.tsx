@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Plus } from 'lucide-react'
@@ -8,29 +8,29 @@ import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/listings/data-table'
 import { getColumns } from '@/components/listings/columns'
 import { Listing } from '@/lib/queries/listings'
-import { Subcategory } from '@/lib/queries/subcategories'
+import { CategoryWithChildren } from '@/lib/queries/categories'
 import { ListingDialog } from '@/components/listings/listing-dialog'
 import { DeleteDialog } from '@/components/listings/delete-dialog'
 import { togglePremiumAction } from '@/app/(protected)/premium/actions'
 
 interface ListingsClientProps {
   listings: Listing[]
-  categories: string[]
-  subcategories: Subcategory[]
-  listingSubcategories: Record<string, string[]>
+  filterCategories: string[]
+  categories: CategoryWithChildren[]
+  listingCategoryIds: Record<string, string[]>
 }
 
-export function ListingsClient({ listings, categories, subcategories, listingSubcategories }: ListingsClientProps) {
+export function ListingsClient({ listings, filterCategories, categories, listingCategoryIds }: ListingsClientProps) {
   const router = useRouter()
   const [editListing, setEditListing] = useState<Listing | null>(null)
   const [deleteListing, setDeleteListing] = useState<Listing | null>(null)
   const [bulkDeleteListings, setBulkDeleteListings] = useState<Listing[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [selectedSubcategoryIds, setSelectedSubcategoryIds] = useState<string[]>([])
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
 
   const handleEdit = (listing: Listing) => {
     setEditListing(listing)
-    setSelectedSubcategoryIds(listingSubcategories[listing.id] || [])
+    setSelectedCategoryIds(listingCategoryIds[listing.id] || [])
     setDialogOpen(true)
   }
 
@@ -40,7 +40,7 @@ export function ListingsClient({ listings, categories, subcategories, listingSub
 
   const handleCreate = () => {
     setEditListing(null)
-    setSelectedSubcategoryIds([])
+    setSelectedCategoryIds([])
     setDialogOpen(true)
   }
 
@@ -92,7 +92,7 @@ export function ListingsClient({ listings, categories, subcategories, listingSub
       <DataTable
         columns={columns}
         data={listings}
-        categories={categories}
+        categories={filterCategories}
         onBulkDelete={handleBulkDelete}
       />
 
@@ -100,8 +100,8 @@ export function ListingsClient({ listings, categories, subcategories, listingSub
         open={dialogOpen}
         onClose={handleDialogClose}
         listing={editListing}
-        subcategories={subcategories}
-        selectedSubcategoryIds={selectedSubcategoryIds}
+        categories={categories}
+        selectedCategoryIds={selectedCategoryIds}
       />
 
       <DeleteDialog

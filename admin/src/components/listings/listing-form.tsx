@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -18,20 +17,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Listing } from '@/lib/queries/listings'
-import { Subcategory } from '@/lib/queries/subcategories'
+import { CategoryWithChildren } from '@/lib/queries/categories'
 
 const listingSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  section: z.string().min(1, 'Section is required'),
-  subcategory_ids: z.array(z.string()).min(1, 'Select at least one subcategory'),
+  category_ids: z.array(z.string()).min(1, 'Select at least one category'),
   category: z.string().optional(),
   description: z.string().optional(),
   address: z.string().optional(),
@@ -48,8 +39,8 @@ export type ListingFormData = z.infer<typeof listingSchema>
 
 interface ListingFormProps {
   listing?: Listing | null
-  subcategories: Subcategory[]
-  selectedSubcategoryIds?: string[]
+  categories: CategoryWithChildren[]
+  selectedCategoryIds?: string[]
   onSubmit: (data: ListingFormData) => Promise<void>
   onCancel: () => void
   isLoading?: boolean
@@ -57,21 +48,17 @@ interface ListingFormProps {
 
 export function ListingForm({
   listing,
-  subcategories,
-  selectedSubcategoryIds,
+  categories,
+  selectedCategoryIds,
   onSubmit,
   onCancel,
   isLoading,
 }: ListingFormProps) {
-  const [selectedSection, setSelectedSection] = useState(listing?.section || '')
-  const sections = [...new Set(subcategories.map(s => s.section))].sort()
-
   const form = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
     defaultValues: {
       name: listing?.name || '',
-      section: listing?.section || '',
-      subcategory_ids: selectedSubcategoryIds || [],
+      category_ids: selectedCategoryIds || [],
       category: listing?.category || '',
       description: listing?.description || '',
       address: listing?.address || '',
@@ -108,76 +95,65 @@ export function ListingForm({
 
         <FormField
           control={form.control}
-          name="section"
+          name="category_ids"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Section *</FormLabel>
-              <Select
-                onValueChange={(value) => {
-                  field.onChange(value)
-                  setSelectedSection(value)
-                  // Clear subcategory selections when section changes
-                  form.setValue('subcategory_ids', [])
-                }}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a section" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {sections.map((section) => (
-                    <SelectItem key={section} value={section}>
-                      {section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {selectedSection && (
-          <FormField
-            control={form.control}
-            name="subcategory_ids"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Appears In *</FormLabel>
-                <FormDescription>Select which subcategories this listing appears in</FormDescription>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-lg p-3">
-                  {subcategories
-                    .filter(sub => sub.section === selectedSection)
-                    .map((sub) => (
-                      <div key={sub.id} className="flex items-center space-x-2">
+              <FormLabel>Appears In *</FormLabel>
+              <FormDescription>Select which categories this listing appears in</FormDescription>
+              <div className="max-h-72 overflow-y-auto border rounded-lg p-3 space-y-1">
+                {categories.map((section) => (
+                  <div key={section.id} className="space-y-1">
+                    {/* Section (parent category) */}
+                    <div className="flex items-center space-x-2 py-1">
+                      <Checkbox
+                        id={section.id}
+                        checked={field.value?.includes(section.id)}
+                        onCheckedChange={(checked) => {
+                          const current = field.value || []
+                          if (checked) {
+                            field.onChange([...current, section.id])
+                          } else {
+                            field.onChange(current.filter((id: string) => id !== section.id))
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={section.id}
+                        className="text-sm font-semibold cursor-pointer"
+                      >
+                        {section.name}
+                      </label>
+                    </div>
+                    {/* Subcategories (children) */}
+                    {section.children.map((child) => (
+                      <div key={child.id} className="flex items-center space-x-2 pl-6 py-0.5">
                         <Checkbox
-                          id={sub.id}
-                          checked={field.value?.includes(sub.id)}
+                          id={child.id}
+                          checked={field.value?.includes(child.id)}
                           onCheckedChange={(checked) => {
                             const current = field.value || []
                             if (checked) {
-                              field.onChange([...current, sub.id])
+                              field.onChange([...current, child.id])
                             } else {
-                              field.onChange(current.filter((id: string) => id !== sub.id))
+                              field.onChange(current.filter((id: string) => id !== child.id))
                             }
                           }}
                         />
                         <label
-                          htmlFor={sub.id}
-                          className="text-sm font-normal cursor-pointer"
+                          htmlFor={child.id}
+                          className="text-sm font-normal cursor-pointer text-muted-foreground"
                         >
-                          {sub.name}
+                          {child.name}
                         </label>
                       </div>
                     ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+                  </div>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
