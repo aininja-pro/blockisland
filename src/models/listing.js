@@ -193,6 +193,89 @@ async function getByGoodBarberId(goodbarberId) {
   return data;
 }
 
+/**
+ * Set premium status for a listing
+ * When setting to premium, assigns rotation_position to end of category rotation.
+ * When removing premium, clears rotation metadata.
+ * @param {string} id - UUID of the listing
+ * @param {boolean} isPremium - New premium status
+ * @returns {Promise<Object|null>} Updated listing or null if not found
+ */
+async function setPremium(id, isPremium) {
+  // Get the listing first to know its category
+  const listing = await getById(id);
+  if (!listing) return null;
+
+  let updates = {
+    is_premium: isPremium,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (isPremium) {
+    // Assign to end of rotation: max(rotation_position) + 1 for this category
+    const { data: maxData, error: maxError } = await supabase
+      .from('listings')
+      .select('rotation_position')
+      .eq('category', listing.category)
+      .eq('is_premium', true)
+      .order('rotation_position', { ascending: false })
+      .limit(1);
+
+    if (maxError) throw maxError;
+
+    const maxPosition = maxData && maxData.length > 0 ? maxData[0].rotation_position : 0;
+    updates.rotation_position = maxPosition + 1;
+  } else {
+    // Clear rotation metadata
+    updates.rotation_position = 0;
+    updates.last_rotated_at = null;
+  }
+
+  const { data, error } = await supabase
+    .from('listings')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error && error.code === 'PGRST116') return null;
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get count of premium listings in a category
+ * @param {string} category - Category name
+ * @returns {Promise<number>} Count of premium listings
+ */
+async function getPremiumCount(category) {
+  const { count, error } = await supabase
+    .from('listings')
+    .select('*', { count: 'exact', head: true })
+    .eq('category', category)
+    .eq('is_premium', true);
+
+  if (error) throw error;
+  return count || 0;
+}
+
+/**
+ * Get all distinct categories that have premium listings
+ * @returns {Promise<Array<string>>} Array of category names
+ */
+async function getAllCategories() {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('category')
+    .eq('is_premium', true);
+
+  if (error) throw error;
+
+  // Extract unique categories
+  const categories = [...new Set(data.map(row => row.category))];
+  return categories;
+}
+
 module.exports = {
   getAll,
   getById,
@@ -203,4 +286,7 @@ module.exports = {
   update,
   delete: remove,
   upsertByGoodBarberId,
+  setPremium,
+  getPremiumCount,
+  getAllCategories,
 };
