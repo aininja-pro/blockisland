@@ -5,6 +5,7 @@ export interface Listing {
   goodbarber_id: string | null
   name: string
   category: string
+  section: string | null
   description: string | null
   address: string | null
   latitude: number | null
@@ -18,11 +19,13 @@ export interface Listing {
   last_rotated_at: string | null
   created_at: string
   updated_at: string
+  subcategory_ids?: string[]  // For form use
 }
 
 export interface ListingInsert {
   name: string
   category: string
+  section?: string | null
   description?: string | null
   address?: string | null
   latitude?: number | null
