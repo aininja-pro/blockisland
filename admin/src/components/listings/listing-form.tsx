@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -24,10 +26,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Listing } from '@/lib/queries/listings'
+import { Subcategory } from '@/lib/queries/subcategories'
 
 const listingSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  category: z.string().min(1, 'Category is required'),
+  section: z.string().min(1, 'Section is required'),
+  subcategory_ids: z.array(z.string()).min(1, 'Select at least one subcategory'),
+  category: z.string().optional(),
   description: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
@@ -43,7 +48,8 @@ export type ListingFormData = z.infer<typeof listingSchema>
 
 interface ListingFormProps {
   listing?: Listing | null
-  categories: string[]
+  subcategories: Subcategory[]
+  selectedSubcategoryIds?: string[]
   onSubmit: (data: ListingFormData) => Promise<void>
   onCancel: () => void
   isLoading?: boolean
@@ -51,15 +57,21 @@ interface ListingFormProps {
 
 export function ListingForm({
   listing,
-  categories,
+  subcategories,
+  selectedSubcategoryIds,
   onSubmit,
   onCancel,
   isLoading,
 }: ListingFormProps) {
+  const [selectedSection, setSelectedSection] = useState(listing?.section || '')
+  const sections = [...new Set(subcategories.map(s => s.section))].sort()
+
   const form = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
     defaultValues: {
       name: listing?.name || '',
+      section: listing?.section || '',
+      subcategory_ids: selectedSubcategoryIds || [],
       category: listing?.category || '',
       description: listing?.description || '',
       address: listing?.address || '',
@@ -96,20 +108,28 @@ export function ListingForm({
 
         <FormField
           control={form.control}
-          name="category"
+          name="section"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Category *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormLabel>Section *</FormLabel>
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value)
+                  setSelectedSection(value)
+                  // Clear subcategory selections when section changes
+                  form.setValue('subcategory_ids', [])
+                }}
+                defaultValue={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
+                    <SelectValue placeholder="Select a section" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {sections.map((section) => (
+                    <SelectItem key={section} value={section}>
+                      {section}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -118,6 +138,46 @@ export function ListingForm({
             </FormItem>
           )}
         />
+
+        {selectedSection && (
+          <FormField
+            control={form.control}
+            name="subcategory_ids"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Appears In *</FormLabel>
+                <FormDescription>Select which subcategories this listing appears in</FormDescription>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                  {subcategories
+                    .filter(sub => sub.section === selectedSection)
+                    .map((sub) => (
+                      <div key={sub.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={sub.id}
+                          checked={field.value?.includes(sub.id)}
+                          onCheckedChange={(checked) => {
+                            const current = field.value || []
+                            if (checked) {
+                              field.onChange([...current, sub.id])
+                            } else {
+                              field.onChange(current.filter((id: string) => id !== sub.id))
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={sub.id}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {sub.name}
+                        </label>
+                      </div>
+                    ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
