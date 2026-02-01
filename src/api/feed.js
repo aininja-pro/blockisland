@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const listing = require('../models/listing');
-const { needsRotation, rotateAllCategories } = require('../services/rotation');
+const { needsRotation, rotateAllSections } = require('../services/rotation');
 
 /**
  * Generate a numeric hash code from a string (UUID).
@@ -61,61 +61,81 @@ function transformToGoodBarber(listingData) {
     website: listingData.website || '',
     date: listingData.created_at || '',
     type: 'map',
-    subtype: listingData.category || '',
+    subtype: listingData.section || listingData.category || '',
     thumbnail: listingData.image_url || '',
     images,
   };
 }
 
 /**
+ * Sort listings: premium first by rotation_position, then non-premium by name.
+ * @param {Array} listings - Array of listings
+ * @returns {Array} Sorted listings
+ */
+function sortListings(listings) {
+  return listings.sort((a, b) => {
+    if (a.is_premium && !b.is_premium) return -1;
+    if (!a.is_premium && b.is_premium) return 1;
+    if (a.is_premium && b.is_premium) {
+      return (a.rotation_position || 0) - (b.rotation_position || 0);
+    }
+    return (a.name || '').localeCompare(b.name || '');
+  });
+}
+
+/**
  * GET /maps
  * Returns all listings sorted for GoodBarber Custom Map Feed.
- * Premium listings appear first (by rotation_position) within each category.
- * Supports optional ?category query param for filtering.
+ * Premium listings appear first (by rotation_position) within each section.
+ *
+ * Query params:
+ * - ?section=X - Get all listings in a section
+ * - ?section=X&sub=Y - Get listings in a specific subcategory
+ * - ?category=X - Legacy: category-based filtering (backward compatibility)
  */
 router.get('/maps', async (req, res) => {
   try {
     // Check if rotation is needed and run if so
     const rotationNeeded = await needsRotation();
     if (rotationNeeded) {
-      await rotateAllCategories();
+      await rotateAllSections();
     }
 
-    const { category } = req.query;
+    const { category, section, sub } = req.query;
     let listings;
 
-    if (category) {
-      // Get listings for specific category
+    if (section && sub) {
+      // Get listings in specific subcategory
+      listings = await listing.getBySubcategory(section, sub);
+      listings = sortListings(listings);
+    } else if (section) {
+      // Get all listings in section, sorted
+      listings = await listing.getSortedBySection(section);
+    } else if (category) {
+      // Legacy: category-based filtering (backward compatibility)
       listings = await listing.getSortedByCategory(category);
     } else {
-      // Get all listings sorted: premium first within each category, categories alphabetized
+      // Get all listings sorted: premium first within each section, sections alphabetized
       const allListings = await listing.getAll();
 
-      // Group by category
-      const byCategory = {};
+      // Group by section
+      const bySection = {};
       for (const l of allListings) {
-        const cat = l.category || 'Uncategorized';
-        if (!byCategory[cat]) byCategory[cat] = [];
-        byCategory[cat].push(l);
+        const sec = l.section || l.category || 'Uncategorized';
+        if (!bySection[sec]) bySection[sec] = [];
+        bySection[sec].push(l);
       }
 
-      // Sort within each category (premium first by rotation_position, then non-premium by name)
-      for (const cat of Object.keys(byCategory)) {
-        byCategory[cat].sort((a, b) => {
-          if (a.is_premium && !b.is_premium) return -1;
-          if (!a.is_premium && b.is_premium) return 1;
-          if (a.is_premium && b.is_premium) {
-            return (a.rotation_position || 0) - (b.rotation_position || 0);
-          }
-          return (a.name || '').localeCompare(b.name || '');
-        });
+      // Sort within each section
+      for (const sec of Object.keys(bySection)) {
+        sortListings(bySection[sec]);
       }
 
-      // Combine: categories alphabetized, listings in sort order within each
-      const sortedCategories = Object.keys(byCategory).sort();
+      // Combine: sections alphabetized, listings in sort order within each
+      const sortedSections = Object.keys(bySection).sort();
       listings = [];
-      for (const cat of sortedCategories) {
-        listings.push(...byCategory[cat]);
+      for (const sec of sortedSections) {
+        listings.push(...bySection[sec]);
       }
     }
 
