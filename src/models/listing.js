@@ -276,6 +276,176 @@ async function getAllCategories() {
   return categories;
 }
 
+// ============================================================
+// Section/Subcategory Methods (Phase 7)
+// ============================================================
+
+/**
+ * Get all listings in a section
+ * @param {string} section - Section name
+ * @returns {Promise<Array>} Array of listings in section
+ */
+async function getBySection(section) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('section', section)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get listings in a specific subcategory
+ * @param {string} section - Section name
+ * @param {string} subcategoryName - Subcategory name
+ * @returns {Promise<Array>} Array of listings in subcategory
+ */
+async function getBySubcategory(section, subcategoryName) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select(`
+      *,
+      listing_subcategories!inner(
+        subcategory_id,
+        subcategories!inner(name, section)
+      )
+    `)
+    .eq('listing_subcategories.subcategories.section', section)
+    .eq('listing_subcategories.subcategories.name', subcategoryName);
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get listings sorted for API consumption by section.
+ * Premium listings first (by rotation_position), then non-premium (by name).
+ * @param {string} section - Section name
+ * @returns {Promise<Array>} Sorted array of listings
+ */
+async function getSortedBySection(section) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('section', section);
+
+  if (error) throw error;
+
+  // Sort: premium first (by rotation_position ASC), then non-premium (by name ASC)
+  return data.sort((a, b) => {
+    if (a.is_premium && !b.is_premium) return -1;
+    if (!a.is_premium && b.is_premium) return 1;
+    if (a.is_premium && b.is_premium) {
+      return (a.rotation_position || 0) - (b.rotation_position || 0);
+    }
+    return (a.name || '').localeCompare(b.name || '');
+  });
+}
+
+/**
+ * Get premium listings in a section (for rotation logic)
+ * @param {string} section - Section name
+ * @returns {Promise<Array>} Array of premium listings in section
+ */
+async function getPremiumBySection(section) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('section', section)
+    .eq('is_premium', true)
+    .order('rotation_position', { ascending: true });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get all distinct sections that have premium listings
+ * @returns {Promise<Array<string>>} Array of section names
+ */
+async function getAllSections() {
+  const { data, error } = await supabase
+    .from('listings')
+    .select('section')
+    .eq('is_premium', true);
+
+  if (error) throw error;
+
+  // Extract unique sections
+  const sections = [...new Set(data.map(row => row.section).filter(Boolean))];
+  return sections;
+}
+
+/**
+ * Get all subcategories for a section
+ * @param {string} section - Section name
+ * @returns {Promise<Array>} Array of subcategory objects
+ */
+async function getSubcategories(section) {
+  const { data, error } = await supabase
+    .from('subcategories')
+    .select('*')
+    .eq('section', section)
+    .order('display_order', { ascending: true });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get all subcategories grouped by section
+ * @returns {Promise<Object>} Object with section keys and subcategory array values
+ */
+async function getAllSubcategories() {
+  const { data, error } = await supabase
+    .from('subcategories')
+    .select('*')
+    .order('section', { ascending: true })
+    .order('display_order', { ascending: true });
+
+  if (error) throw error;
+
+  // Group by section
+  const grouped = {};
+  for (const sub of data) {
+    if (!grouped[sub.section]) grouped[sub.section] = [];
+    grouped[sub.section].push(sub);
+  }
+  return grouped;
+}
+
+/**
+ * Set which subcategories a listing appears in
+ * @param {string} listingId - UUID of the listing
+ * @param {Array<string>} subcategoryIds - Array of subcategory UUIDs
+ * @returns {Promise<void>}
+ */
+async function setListingSubcategories(listingId, subcategoryIds) {
+  // Delete existing entries for this listing
+  const { error: deleteError } = await supabase
+    .from('listing_subcategories')
+    .delete()
+    .eq('listing_id', listingId);
+
+  if (deleteError) throw deleteError;
+
+  // Insert new entries if any
+  if (subcategoryIds && subcategoryIds.length > 0) {
+    const entries = subcategoryIds.map(subcategoryId => ({
+      listing_id: listingId,
+      subcategory_id: subcategoryId,
+    }));
+
+    const { error: insertError } = await supabase
+      .from('listing_subcategories')
+      .insert(entries);
+
+    if (insertError) throw insertError;
+  }
+}
+
 /**
  * Get listings sorted for API consumption.
  * Premium listings first (by rotation_position), then non-premium (by name).
@@ -326,4 +496,13 @@ module.exports = {
   setPremium,
   getPremiumCount,
   getAllCategories,
+  // Section/Subcategory methods (Phase 7)
+  getBySection,
+  getBySubcategory,
+  getSortedBySection,
+  getPremiumBySection,
+  getAllSections,
+  getSubcategories,
+  getAllSubcategories,
+  setListingSubcategories,
 };
