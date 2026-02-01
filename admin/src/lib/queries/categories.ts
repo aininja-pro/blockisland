@@ -54,6 +54,93 @@ export async function getCategoryStats(): Promise<CategoryStats[]> {
     .sort((a, b) => a.category.localeCompare(b.category))
 }
 
+// Section stats from the new categories hierarchy
+export interface SectionStats {
+  id: string
+  name: string
+  totalCount: number
+  premiumCount: number
+  subcategoryCount: number
+}
+
+export async function getSectionStats(): Promise<SectionStats[]> {
+  const supabase = await createClient()
+
+  // Get sections (parent_id = null)
+  const { data: sections, error: sectionsError } = await supabase
+    .from('categories')
+    .select('id, name')
+    .is('parent_id', null)
+    .order('display_order')
+
+  if (sectionsError) {
+    console.error('Error fetching sections:', sectionsError)
+    throw sectionsError
+  }
+
+  // Get all subcategory counts per section
+  const { data: subcategories, error: subError } = await supabase
+    .from('categories')
+    .select('parent_id')
+    .not('parent_id', 'is', null)
+
+  if (subError) {
+    console.error('Error fetching subcategories:', subError)
+    throw subError
+  }
+
+  // Count subcategories per section
+  const subcategoryCounts: Record<string, number> = {}
+  for (const sub of subcategories || []) {
+    subcategoryCounts[sub.parent_id] = (subcategoryCounts[sub.parent_id] || 0) + 1
+  }
+
+  // Get listing counts per category
+  const { data: listingCategories, error: lcError } = await supabase
+    .from('listing_categories')
+    .select('category_id, listings(is_premium)')
+
+  if (lcError) {
+    console.error('Error fetching listing categories:', lcError)
+    throw lcError
+  }
+
+  // Build category to section mapping
+  const { data: allCategories } = await supabase
+    .from('categories')
+    .select('id, parent_id')
+
+  const categoryToSection: Record<string, string> = {}
+  for (const cat of allCategories || []) {
+    // If it's a section (no parent), map to itself
+    // If it's a subcategory, map to its parent
+    categoryToSection[cat.id] = cat.parent_id || cat.id
+  }
+
+  // Count listings per section
+  const sectionCounts: Record<string, { total: number; premium: number }> = {}
+  for (const lc of listingCategories || []) {
+    const sectionId = categoryToSection[lc.category_id]
+    if (!sectionId) continue
+
+    if (!sectionCounts[sectionId]) {
+      sectionCounts[sectionId] = { total: 0, premium: 0 }
+    }
+    sectionCounts[sectionId].total++
+    if ((lc.listings as any)?.is_premium) {
+      sectionCounts[sectionId].premium++
+    }
+  }
+
+  return (sections || []).map(section => ({
+    id: section.id,
+    name: section.name,
+    totalCount: sectionCounts[section.id]?.total || 0,
+    premiumCount: sectionCounts[section.id]?.premium || 0,
+    subcategoryCount: subcategoryCounts[section.id] || 0,
+  }))
+}
+
 // Get all categories (flat list)
 export async function getAllCategories(): Promise<Category[]> {
   const supabase = await createClient()
