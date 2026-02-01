@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 7 of 7 (Section & Subcategory Support)
-Plan: 1 of TBD in current phase
+Plan: 2 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-01 — Completed 07-01-PLAN.md
+Last activity: 2026-02-01 — Completed 07-02-PLAN.md
 
-Progress: █████████░ 91%
+Progress: █████████░ 93%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 5 min
-- Total execution time: 0.85 hours
+- Total execution time: 0.9 hours
 
 **By Phase:**
 
@@ -33,10 +33,10 @@ Progress: █████████░ 91%
 | 4. API Endpoint | 1 | 5m | 5m |
 | 5. Admin Interface | 4 | 18m | 4.5m |
 | 6. Integration & Docs | 1 | 2m | 2m |
-| 7. Section & Subcategory | 1 | 3m | 3m |
+| 7. Section & Subcategory | 2 | 6m | 3m |
 
 **Recent Trend:**
-- Last 5 plans: 05-03 (3m), 05-04 (5m), 06-01 (2m), 07-01 (3m)
+- Last 5 plans: 05-04 (5m), 06-01 (2m), 07-01 (3m), 07-02 (3m)
 - Trend: Fast
 
 ## Accumulated Context
@@ -59,6 +59,8 @@ Progress: █████████░ 91%
 - **07-01:** Sections without subcategories get single entry with section=name
 - **07-01:** Food & Drink has 14 subcategories based on restaurant taxonomy
 - **07-01:** Migration script uses dry-run by default for safety
+- **07-02:** Rotation at section level - same position across all subcategories
+- **07-02:** Backward compat via aliases (rotateCategoryPremiums → rotateSectionPremiums)
 
 ### Deferred Issues
 
@@ -71,5 +73,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 07-01-PLAN.md
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
