@@ -55,3 +55,51 @@ CREATE POLICY "Allow public delete" ON listings
 -- Allow authenticated users full access (for admin interface later)
 CREATE POLICY "Allow authenticated full access" ON listings
   FOR ALL USING (auth.role() = 'authenticated');
+
+-- ============================================================================
+-- Section & Subcategory Support (Phase 7)
+-- ============================================================================
+
+-- Add section column to listings (for new installs; migration-07-sections.sql for existing)
+-- ALTER TABLE listings ADD COLUMN IF NOT EXISTS section TEXT;
+-- CREATE INDEX IF NOT EXISTS idx_listings_section ON listings(section);
+
+-- Subcategories reference table
+CREATE TABLE IF NOT EXISTS subcategories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  section TEXT NOT NULL,
+  name TEXT NOT NULL,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(section, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_subcategories_section ON subcategories(section);
+
+-- Enable RLS on subcategories
+ALTER TABLE subcategories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read" ON subcategories
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow authenticated full access" ON subcategories
+  FOR ALL USING (auth.role() = 'authenticated');
+
+-- Junction table for many-to-many listing↔subcategory relationship
+CREATE TABLE IF NOT EXISTS listing_subcategories (
+  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
+  subcategory_id UUID REFERENCES subcategories(id) ON DELETE CASCADE,
+  PRIMARY KEY (listing_id, subcategory_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_listing_subcategories_listing ON listing_subcategories(listing_id);
+CREATE INDEX IF NOT EXISTS idx_listing_subcategories_subcategory ON listing_subcategories(subcategory_id);
+
+-- Enable RLS on listing_subcategories
+ALTER TABLE listing_subcategories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read" ON listing_subcategories
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow authenticated full access" ON listing_subcategories
+  FOR ALL USING (auth.role() = 'authenticated');
