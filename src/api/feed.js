@@ -34,6 +34,88 @@ function stripHtmlAndTruncate(html, maxLength = 100) {
 }
 
 /**
+ * Convert a video URL to an embed iframe.
+ * @param {string} url - Video URL (YouTube or Vimeo)
+ * @returns {string} HTML iframe or link
+ */
+function getVideoEmbed(url) {
+  // YouTube
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+  if (ytMatch) {
+    return `<iframe width="560" height="315" src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen></iframe>`;
+  }
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) {
+    return `<iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" width="560" height="315" frameborder="0" allowfullscreen></iframe>`;
+  }
+  return `<a href="${url}">${url}</a>`;
+}
+
+/**
+ * Convert content blocks (JSON) to HTML for GoodBarber.
+ * @param {Array} blocks - Array of content blocks
+ * @returns {string} HTML string
+ */
+function blocksToHtml(blocks) {
+  if (!Array.isArray(blocks)) return '';
+
+  return blocks.map(block => {
+    switch (block.type) {
+      case 'text':
+        return block.content || '';
+      case 'photo': {
+        let html = '<figure class="content-photo">';
+        html += `<img src="${block.url}" alt="${block.caption || ''}" />`;
+        if (block.caption) {
+          html += `<figcaption>${block.caption}</figcaption>`;
+        }
+        html += '</figure>';
+        return html;
+      }
+      case 'video':
+        return `<div class="content-video">${getVideoEmbed(block.url || '')}</div>`;
+      case 'quote': {
+        let html = '<blockquote class="content-quote">';
+        html += `<p>${block.text || ''}</p>`;
+        if (block.attribution) {
+          html += `<cite>${block.attribution}</cite>`;
+        }
+        html += '</blockquote>';
+        return html;
+      }
+      case 'embed':
+        return `<div class="content-embed">${block.html || ''}</div>`;
+      default:
+        return '';
+    }
+  }).join('\n');
+}
+
+/**
+ * Parse description field - could be JSON blocks or legacy HTML/text.
+ * Returns HTML for GoodBarber consumption.
+ * @param {string} description - Description field from database
+ * @returns {string} HTML content
+ */
+function parseDescriptionToHtml(description) {
+  if (!description) return '';
+
+  // Try to parse as JSON (new block format)
+  try {
+    const parsed = JSON.parse(description);
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type) {
+      return blocksToHtml(parsed);
+    }
+  } catch {
+    // Not JSON, treat as legacy HTML/text
+  }
+
+  // Legacy content - return as-is (already HTML or plain text)
+  return description;
+}
+
+/**
  * Transform a listing to GoodBarber Custom Map Feed format.
  * @param {Object} listing - Listing from database
  * @returns {Object} GoodBarber-formatted item
@@ -48,11 +130,15 @@ function transformToGoodBarber(listingData) {
     images.push({ url: listingData.image_url });
   }
 
+  // Convert description (JSON blocks or legacy HTML) to HTML for GoodBarber
+  const contentHtml = parseDescriptionToHtml(listingData.description);
+
   return {
     id,
     title: listingData.name || '',
-    content: listingData.description || '',
-    summary: stripHtmlAndTruncate(listingData.description, 100),
+    content: contentHtml,
+    summary: stripHtmlAndTruncate(contentHtml, 100),
+    author: '',
     address: listingData.address || '',
     latitude: String(listingData.latitude || ''),
     longitude: String(listingData.longitude || ''),
@@ -60,9 +146,11 @@ function transformToGoodBarber(listingData) {
     email: listingData.email || '',
     website: listingData.website || '',
     date: listingData.created_at || '',
-    type: 'map',
-    // Use subcategory_name (from getListingsForSection) for filter tabs in GoodBarber
-    subtype: listingData.subcategory_name || listingData.section || listingData.category || '',
+    type: 'maps',
+    subtype: 'custom',
+    categories: listingData.subcategory_name ? [listingData.subcategory_name] : [],
+    commentsEnabled: false,
+    nbcomments: 0,
     thumbnail: listingData.image_url || '',
     images,
   };
@@ -102,10 +190,11 @@ function filterPublished(listings) {
  * - ?section=X - Get all listings in a section (uses categories table)
  * - ?category=X - Legacy: category-based filtering (backward compatibility)
  *
- * GoodBarber reads the "subtype" field to create filter tabs automatically.
- * Each listing's subtype is set to its subcategory name (e.g., "Medical", "Laundry").
+ * Each listing includes a "categories" array with its subcategory name(s).
+ * GoodBarber can use these for filter tabs within a section.
  */
 router.get('/maps', async (req, res) => {
+  const startTime = Date.now();
   try {
     // Check if rotation is needed and run if so
     const rotationNeeded = await needsRotation();
@@ -156,6 +245,7 @@ router.get('/maps', async (req, res) => {
     res.json({
       items,
       next_page: null,
+      generated_in: `${Date.now() - startTime}ms`,
       stat: 'ok',
     });
   } catch (error) {

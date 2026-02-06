@@ -137,6 +137,7 @@ Returns listings in GoodBarber Custom Map Feed format.
       "title": "Business Name",
       "content": "Full description",
       "summary": "Truncated description...",
+      "author": "",
       "address": "123 Main St, Block Island, RI",
       "latitude": "41.1873",
       "longitude": "-71.5773",
@@ -144,8 +145,11 @@ Returns listings in GoodBarber Custom Map Feed format.
       "email": "contact@example.com",
       "website": "https://example.com",
       "date": "2026-01-15T12:00:00Z",
-      "type": "map",
-      "subtype": "Restaurants",
+      "type": "maps",
+      "subtype": "custom",
+      "categories": ["Fine Dining"],
+      "commentsEnabled": false,
+      "nbcomments": 0,
       "thumbnail": "https://example.com/image.jpg",
       "images": [
         { "url": "https://example.com/image.jpg" }
@@ -153,6 +157,7 @@ Returns listings in GoodBarber Custom Map Feed format.
     }
   ],
   "next_page": null,
+  "generated_in": "42ms",
   "stat": "ok"
 }
 ```
@@ -162,10 +167,10 @@ Returns listings in GoodBarber Custom Map Feed format.
 2. Non-premium listings second (alphabetically by name)
 3. When no section specified: grouped by section (alphabetically)
 
-**Subcategory Tabs (subtype field):**
-- When using `?section=X`, each listing includes a `subtype` field set to its subcategory name
-- GoodBarber reads these `subtype` values and creates filter tabs automatically
-- Example: For "Community Places" section, items have subtypes like "Medical", "Laundry", "ATMs"
+**Subcategory Filtering (categories field):**
+- When using `?section=X`, each listing includes a `categories` array with its subcategory name(s)
+- GoodBarber can use these values for filter tabs within a section
+- Example: For "Community Places" section, items have `categories: ["Medical"]`, `categories: ["Laundry"]`, etc.
 
 **Automatic Rotation:**
 - On each request, checks if rotation is needed (once per day)
