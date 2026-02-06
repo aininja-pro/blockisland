@@ -23,6 +23,8 @@ export async function createListingAction(data: ListingFormData) {
     latitude: listingFields.latitude || null,
     longitude: listingFields.longitude || null,
     image_url: listingFields.image_url || null,
+    pin_icon_color: listingFields.pin_icon_color || null,
+    pin_icon_url: listingFields.pin_icon_url || null,
     is_premium: listingFields.is_premium,
   }
 
@@ -64,6 +66,8 @@ export async function updateListingAction(id: string, data: ListingFormData) {
     latitude: listingFields.latitude || null,
     longitude: listingFields.longitude || null,
     image_url: listingFields.image_url || null,
+    pin_icon_color: listingFields.pin_icon_color || null,
+    pin_icon_url: listingFields.pin_icon_url || null,
     is_premium: listingFields.is_premium,
   }
 

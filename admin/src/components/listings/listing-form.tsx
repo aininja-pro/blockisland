@@ -18,7 +18,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { MapPin, Phone, Mail, Globe, Eye } from 'lucide-react'
+import { MapPin, Phone, Mail, Globe, Eye, Palette, Search } from 'lucide-react'
+import { MapPreview } from '@/components/listings/map-preview'
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,8 @@ const listingSchema = z.object({
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
   image_url: z.string().url().optional().or(z.literal('')),
+  pin_icon_color: z.string().optional().or(z.literal('')),
+  pin_icon_url: z.string().url().optional().or(z.literal('')),
   is_premium: z.boolean(),
 })
 
@@ -113,6 +116,8 @@ export function ListingForm({
       latitude: listing?.latitude || null,
       longitude: listing?.longitude || null,
       image_url: listing?.image_url || '',
+      pin_icon_color: listing?.pin_icon_color || '',
+      pin_icon_url: listing?.pin_icon_url || '',
       is_premium: listing?.is_premium || false,
     },
   })
@@ -133,6 +138,7 @@ export function ListingForm({
   }
 
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [categorySearch, setCategorySearch] = useState('')
   const watchedValues = form.watch()
 
   return (
@@ -155,63 +161,97 @@ export function ListingForm({
         <FormField
           control={form.control}
           name="category_ids"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Appears In *</FormLabel>
-              <FormDescription>Select which categories this listing appears in</FormDescription>
-              <div className="max-h-72 overflow-y-auto border rounded-lg p-3 space-y-1">
-                {categories.map((section) => (
-                  <div key={section.id} className="space-y-1">
-                    {/* Section (parent category) */}
-                    <div className="flex items-center space-x-2 py-1">
-                      <Checkbox
-                        id={section.id}
-                        checked={field.value?.includes(section.id)}
-                        onCheckedChange={(checked) => {
-                          const current = field.value || []
-                          if (checked) {
-                            field.onChange([...current, section.id])
-                          } else {
-                            field.onChange(current.filter((id: string) => id !== section.id))
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={section.id}
-                        className="text-sm font-semibold cursor-pointer"
-                      >
-                        {section.name}
-                      </label>
-                    </div>
-                    {/* Subcategories (children) */}
-                    {section.children.map((child) => (
-                      <div key={child.id} className="flex items-center space-x-2 pl-6 py-0.5">
-                        <Checkbox
-                          id={child.id}
-                          checked={field.value?.includes(child.id)}
-                          onCheckedChange={(checked) => {
-                            const current = field.value || []
-                            if (checked) {
-                              field.onChange([...current, child.id])
-                            } else {
-                              field.onChange(current.filter((id: string) => id !== child.id))
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor={child.id}
-                          className="text-sm font-normal cursor-pointer text-muted-foreground"
-                        >
-                          {child.name}
-                        </label>
-                      </div>
-                    ))}
+          render={({ field }) => {
+            const query = categorySearch.toLowerCase()
+            const filtered = query
+              ? categories.filter((section) =>
+                  section.name.toLowerCase().includes(query) ||
+                  section.children.some((child) => child.name.toLowerCase().includes(query))
+                )
+              : categories
+
+            return (
+              <FormItem>
+                <FormLabel>Appears In *</FormLabel>
+                <FormDescription>Select which categories this listing appears in</FormDescription>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="relative border-b">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search categories..."
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                    />
                   </div>
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
+                  <div className="max-h-72 overflow-y-auto p-3 space-y-1">
+                    {filtered.map((section) => {
+                      const matchingChildren = query
+                        ? section.children.filter((child) =>
+                            child.name.toLowerCase().includes(query) ||
+                            section.name.toLowerCase().includes(query)
+                          )
+                        : section.children
+
+                      return (
+                        <div key={section.id} className="space-y-1">
+                          <div className="flex items-center space-x-2 py-1">
+                            <Checkbox
+                              id={section.id}
+                              checked={field.value?.includes(section.id)}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || []
+                                if (checked) {
+                                  field.onChange([...current, section.id])
+                                } else {
+                                  field.onChange(current.filter((id: string) => id !== section.id))
+                                }
+                              }}
+                              className="data-[state=checked]:bg-blue-700 data-[state=checked]:border-blue-700"
+                            />
+                            <label
+                              htmlFor={section.id}
+                              className="text-sm font-semibold cursor-pointer"
+                            >
+                              {section.name}
+                            </label>
+                          </div>
+                          {matchingChildren.map((child) => (
+                            <div key={child.id} className="flex items-center space-x-2 pl-6 py-0.5">
+                              <Checkbox
+                                id={child.id}
+                                checked={field.value?.includes(child.id)}
+                                onCheckedChange={(checked) => {
+                                  const current = field.value || []
+                                  if (checked) {
+                                    field.onChange([...current, child.id])
+                                  } else {
+                                    field.onChange(current.filter((id: string) => id !== child.id))
+                                  }
+                                }}
+                                className="data-[state=checked]:bg-blue-700 data-[state=checked]:border-blue-700"
+                              />
+                              <label
+                                htmlFor={child.id}
+                                className="text-sm font-normal cursor-pointer text-muted-foreground"
+                              >
+                                {child.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                    {filtered.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No categories match "{categorySearch}"</p>
+                    )}
+                  </div>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
 
         <FormItem>
@@ -327,6 +367,11 @@ export function ListingForm({
           />
         </div>
 
+        <MapPreview
+          latitude={watchedValues.latitude}
+          longitude={watchedValues.longitude}
+        />
+
         <FormField
           control={form.control}
           name="image_url"
@@ -336,6 +381,59 @@ export function ListingForm({
               <FormControl>
                 <Input type="url" placeholder="https://example.com/image.jpg" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-[auto_1fr] gap-3 items-end">
+          <FormField
+            control={form.control}
+            name="pin_icon_color"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1.5">
+                  <Palette className="h-3.5 w-3.5" />
+                  Pin Color
+                </FormLabel>
+                <FormControl>
+                  <input
+                    type="color"
+                    value={field.value || '#e74c3c'}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    className="h-9 w-14 rounded border cursor-pointer"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="pin_icon_color"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    placeholder="#e74c3c (leave blank for default)"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="pin_icon_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Pin Icon Image URL</FormLabel>
+              <FormControl>
+                <Input type="url" placeholder="https://example.com/pin-icon.png" {...field} />
+              </FormControl>
+              <FormDescription>Custom pin icon image (overrides pin color)</FormDescription>
               <FormMessage />
             </FormItem>
           )}

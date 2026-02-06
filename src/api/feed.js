@@ -152,6 +152,12 @@ function transformToGoodBarber(listingData) {
     commentsEnabled: false,
     nbcomments: 0,
     thumbnail: listingData.image_url || '',
+    smallThumbnail: listingData.image_url || '',
+    largeThumbnail: listingData.image_url || '',
+    originalThumbnail: listingData.image_url || '',
+    pinIconColor: listingData.pin_icon_color || undefined,
+    pinIconUrl: listingData.pin_icon_url || undefined,
+    ...(listingData.pin_icon_url ? { pinIconWidth: 30, pinIconHeight: 40 } : {}),
     images,
   };
 }
