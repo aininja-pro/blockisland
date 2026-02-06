@@ -18,7 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { MapPin, Phone, Mail, Globe, Eye, Palette, Search } from 'lucide-react'
+import { MapPin, Phone, Mail, Globe, Eye, Palette, Search, LocateFixed, Loader2 } from 'lucide-react'
 import { MapPreview } from '@/components/listings/map-preview'
 import {
   Dialog,
@@ -139,7 +139,31 @@ export function ListingForm({
 
   const [previewOpen, setPreviewOpen] = useState(false)
   const [categorySearch, setCategorySearch] = useState('')
+  const [geocoding, setGeocoding] = useState(false)
   const watchedValues = form.watch()
+
+  const geocodeAddress = useCallback(async () => {
+    const address = form.getValues('address')
+    if (!address?.trim()) return
+
+    setGeocoding(true)
+    try {
+      const query = encodeURIComponent(address + ', Block Island, RI')
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
+        { headers: { 'User-Agent': 'BlockIslandAdmin/1.0' } }
+      )
+      const results = await res.json()
+      if (results.length > 0) {
+        form.setValue('latitude', parseFloat(results[0].lat), { shouldDirty: true })
+        form.setValue('longitude', parseFloat(results[0].lon), { shouldDirty: true })
+      }
+    } catch (err) {
+      console.error('Geocoding failed:', err)
+    } finally {
+      setGeocoding(false)
+    }
+  }, [form])
 
   return (
     <Form {...form}>
@@ -271,9 +295,26 @@ export function ListingForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Address</FormLabel>
-              <FormControl>
-                <Input placeholder="Street address" {...field} />
-              </FormControl>
+              <div className="flex gap-2">
+                <FormControl>
+                  <Input placeholder="Street address" {...field} />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 h-9"
+                  disabled={geocoding || !field.value?.trim()}
+                  onClick={geocodeAddress}
+                >
+                  {geocoding ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LocateFixed className="h-4 w-4 mr-1.5" />
+                  )}
+                  {geocoding ? 'Looking up...' : 'Lookup'}
+                </Button>
+              </div>
               <FormMessage />
             </FormItem>
           )}
