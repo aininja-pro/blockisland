@@ -1,12 +1,13 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { BlockEditor, ContentBlock, blocksToHtml } from '@/components/editor/block-editor'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
@@ -17,8 +18,47 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { MapPin, Phone, Mail, Globe, Eye } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Listing } from '@/lib/queries/listings'
 import { CategoryWithChildren } from '@/lib/queries/categories'
+
+// Parse description field - could be JSON blocks or legacy HTML/text
+function parseContentBlocks(description: string | null | undefined): ContentBlock[] {
+  if (!description) return []
+
+  // Try to parse as JSON (new format)
+  try {
+    const parsed = JSON.parse(description)
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type) {
+      return parsed as ContentBlock[]
+    }
+  } catch {
+    // Not JSON, treat as legacy content
+  }
+
+  // Legacy content - wrap in a text block
+  if (description.trim()) {
+    return [{ type: 'text', content: description }]
+  }
+
+  return []
+}
+
+// Get location thumbnail URL from blocks
+function getLocationThumbnail(blocks: ContentBlock[]): string | null {
+  for (const block of blocks) {
+    if (block.type === 'photo' && block.isLocationThumbnail && block.url) {
+      return block.url
+    }
+  }
+  return null
+}
 
 const listingSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -54,6 +94,11 @@ export function ListingForm({
   onCancel,
   isLoading,
 }: ListingFormProps) {
+  // Content blocks state (separate from form for complex editing)
+  const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>(() =>
+    parseContentBlocks(listing?.description)
+  )
+
   const form = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
     defaultValues: {
@@ -72,9 +117,23 @@ export function ListingForm({
     },
   })
 
+  // Auto-update image_url when a location thumbnail is set
+  const handleBlocksChange = useCallback((blocks: ContentBlock[]) => {
+    setContentBlocks(blocks)
+    const thumbnail = getLocationThumbnail(blocks)
+    if (thumbnail) {
+      form.setValue('image_url', thumbnail)
+    }
+  }, [form])
+
   const handleSubmit = async (data: ListingFormData) => {
-    await onSubmit(data)
+    // Serialize content blocks to JSON for storage
+    const descriptionJson = JSON.stringify(contentBlocks)
+    await onSubmit({ ...data, description: descriptionJson })
   }
+
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const watchedValues = form.watch()
 
   return (
     <Form {...form}>
@@ -155,23 +214,16 @@ export function ListingForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Business description..."
-                  className="min-h-[100px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+          <FormLabel>Content</FormLabel>
+          <FormDescription>
+            Add text, photos, videos, quotes, and embeds to build your listing content
+          </FormDescription>
+          <BlockEditor
+            value={contentBlocks}
+            onChange={handleBlocksChange}
+          />
+        </FormItem>
 
         <FormField
           control={form.control}
@@ -311,6 +363,10 @@ export function ListingForm({
         />
 
         <div className="flex justify-end gap-3 pt-4">
+          <Button type="button" variant="outline" onClick={() => setPreviewOpen(true)}>
+            <Eye className="h-4 w-4 mr-1.5" />
+            Preview
+          </Button>
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
@@ -319,6 +375,118 @@ export function ListingForm({
           </Button>
         </div>
       </form>
+
+      {/* App Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden">
+          <div className="bg-slate-800 text-white text-center py-3 px-4">
+            <DialogHeader>
+              <DialogTitle className="text-white text-sm font-semibold">
+                App Preview
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+
+          {/* List item view */}
+          <div className="border-b">
+            <div className="flex gap-3 p-4">
+              {watchedValues.image_url ? (
+                <img
+                  src={watchedValues.image_url}
+                  alt=""
+                  className="w-24 h-20 rounded-lg object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-24 h-20 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="h-6 w-6 text-slate-300" />
+                </div>
+              )}
+              <div className="min-w-0 pt-1">
+                <p className="font-semibold text-base text-slate-900">
+                  {watchedValues.name || 'Business Name'}
+                </p>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {watchedValues.address || 'No address'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Detail view */}
+          <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto">
+            {watchedValues.image_url && (
+              <img
+                src={watchedValues.image_url}
+                alt=""
+                className="w-full h-44 rounded-lg object-cover"
+              />
+            )}
+
+            <h3 className="font-bold text-lg text-slate-900">
+              {watchedValues.name || 'Business Name'}
+            </h3>
+
+            {watchedValues.address && (
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-slate-600">{watchedValues.address}</p>
+              </div>
+            )}
+
+            {watchedValues.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <p className="text-sm text-blue-600">{watchedValues.phone}</p>
+              </div>
+            )}
+
+            {watchedValues.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <p className="text-sm text-blue-600">{watchedValues.email}</p>
+              </div>
+            )}
+
+            {watchedValues.website && (
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <p className="text-sm text-blue-600">{watchedValues.website}</p>
+              </div>
+            )}
+
+            {contentBlocks.length > 0 && (
+              <div className="pt-2 border-t space-y-2">
+                {contentBlocks.map((block, i) => {
+                  if (block.type === 'text' && block.content) {
+                    return (
+                      <p key={i} className="text-sm text-slate-600 leading-relaxed">
+                        {block.content.replace(/<[^>]*>/g, '')}
+                      </p>
+                    )
+                  }
+                  if (block.type === 'photo' && block.url) {
+                    return (
+                      <div key={i}>
+                        <img src={block.url} alt={block.caption || ''} className="w-full rounded-lg object-cover" />
+                        {block.caption && <p className="text-xs text-slate-400 mt-1">{block.caption}</p>}
+                      </div>
+                    )
+                  }
+                  if (block.type === 'quote') {
+                    return (
+                      <blockquote key={i} className="border-l-2 border-slate-300 pl-3 italic text-sm text-slate-500">
+                        {block.text}
+                        {block.attribution && <cite className="block text-xs mt-1 not-italic">— {block.attribution}</cite>}
+                      </blockquote>
+                    )
+                  }
+                  return null
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Form>
   )
 }
