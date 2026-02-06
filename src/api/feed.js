@@ -155,9 +155,10 @@ function transformToGoodBarber(listingData) {
     smallThumbnail: listingData.image_url || '',
     largeThumbnail: listingData.image_url || '',
     originalThumbnail: listingData.image_url || '',
-    pinIconColor: listingData.pin_icon_color || undefined,
-    pinIconUrl: listingData.pin_icon_url || undefined,
-    ...(listingData.pin_icon_url ? { pinIconWidth: 30, pinIconHeight: 40 } : {}),
+    pinIconColor: listingData.pin_icon_color || '#e94f06',
+    pinIconUrl: listingData.pin_icon_url || 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png',
+    pinIconWidth: 30,
+    pinIconHeight: 40,
     images,
   };
 }
