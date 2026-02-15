@@ -264,10 +264,10 @@ router.get('/maps', async (req, res) => {
 
     // Generate synthetic dates that encode our sort order.
     // GoodBarber sorts by date descending, so the first item (highest priority)
-    // gets the most recent date. This ensures premium-first ordering is preserved.
+    // gets the most recent date. Dates are spaced 1 day apart for clear separation.
     const now = new Date();
     const items = publishedListings.map((l, index) => {
-      const sortDate = new Date(now.getTime() - index * 60000).toISOString();
+      const sortDate = new Date(now.getTime() - index * 86400000).toISOString();
       return transformToGoodBarber(l, sortDate);
     });
 
