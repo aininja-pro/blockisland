@@ -142,81 +142,80 @@
     transform: translateX(0);
   }
 
-  /* Collapsing hero */
-  .detail-hero-wrap {
+  /* Sticky nav bar — starts transparent over hero, becomes solid navy */
+  .detail-sticky-nav {
     position: sticky;
     top: 0;
-    z-index: 10;
-    overflow: hidden;
-    height: 280px;
-    min-height: 48px;
-    transition: height 0.05s linear;
-  }
-  .detail-hero {
-    width: 100%;
-    height: 280px;
-    object-fit: cover;
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-  .detail-nav {
-    position: absolute;
-    top: 0; left: 0; right: 0;
+    z-index: 20;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 10px 14px;
-    z-index: 12;
-    transition: background 0.15s;
+    height: 48px;
+    transition: background 0.2s;
+    background: transparent;
   }
-  .detail-nav.collapsed {
+  .detail-sticky-nav.solid {
     background: #29547e;
   }
-  .detail-back {
+  .detail-sticky-nav .back-btn {
     background: none;
     border: none;
     color: #fff;
-    font-size: 26px;
+    font-size: 28px;
     cursor: pointer;
     line-height: 1;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    padding: 0;
+    width: 30px;
   }
-  .detail-nav.collapsed .detail-back {
+  .detail-sticky-nav.solid .back-btn {
     text-shadow: none;
   }
-  .detail-nav-title {
+  .detail-sticky-nav .nav-title {
     color: #fff;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
-    opacity: 0;
-    transition: opacity 0.15s;
     flex: 1;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 0 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
   }
-  .detail-nav.collapsed .detail-nav-title {
+  .detail-sticky-nav.solid .nav-title {
     opacity: 1;
   }
-  /* Gradient overlay on hero image */
+
+  /* Hero image — sits behind the sticky nav via negative margin */
+  .detail-hero-wrap {
+    position: relative;
+    height: 280px;
+    margin-top: -48px;
+    overflow: hidden;
+  }
+  .detail-hero {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    will-change: transform;
+  }
   .detail-hero-gradient {
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 70px;
+    height: 80px;
     background: linear-gradient(to bottom, rgba(0,0,0,0.35), transparent);
-    z-index: 11;
     pointer-events: none;
   }
 
+  /* Detail body — white background, scrolls naturally over the hero */
   .detail-body {
     position: relative;
-    z-index: 5;
     background: #fff;
     padding: 18px 16px;
+    z-index: 5;
   }
   .detail-name {
     font-size: 28px;
@@ -321,6 +320,9 @@
     gap: 10px;
     padding: 16px;
     border-top: 1px solid #e0e0e0;
+    background: #fff;
+    position: relative;
+    z-index: 5;
   }
   .action-btn {
     display: flex;
@@ -352,6 +354,8 @@
   .detail-map {
     width: 100%;
     height: 250px;
+    position: relative;
+    z-index: 5;
   }
 
   /* Loading */
@@ -374,7 +378,7 @@
 </head>
 <body>
 
-<!-- LIST VIEW -->
+<!-- LIST VIEW (no back arrow — GoodBarber provides the header nav) -->
 <div class="listings" id="listings">
   <div class="loading">
     <div class="spinner"></div>
@@ -405,8 +409,8 @@ const API_BASE = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const section = params.get('section') || '';
 
-const HERO_MAX = 280;
-const HERO_MIN = 48;
+const HERO_HEIGHT = 280;
+const NAV_HEIGHT = 48;
 
 let map, markers = [], items = [];
 let mapInitialized = false;
@@ -521,18 +525,23 @@ function openDetail(index) {
     : `https://maps.google.com/maps?q=${encodeURIComponent(item.address || item.title)}`;
 
   let html = '';
-  html += `<div class="detail-hero-wrap" id="heroWrap">`;
+
+  // Sticky nav — only back button visible in detail view
+  html += `<div class="detail-sticky-nav" id="detailNav">
+    <button class="back-btn" onclick="closeDetail()">&larr;</button>
+    <span class="nav-title">${esc(item.title)}</span>
+    <span style="width:30px"></span>
+  </div>`;
+
+  // Hero image (sits behind sticky nav via negative top margin)
+  html += `<div class="detail-hero-wrap">`;
   if (item.largeThumbnail || item.thumbnail) {
     html += `<img class="detail-hero" id="heroImg" src="${item.largeThumbnail || item.thumbnail}" alt="${esc(item.title)}" />`;
   }
   html += `<div class="detail-hero-gradient"></div>`;
-  html += `<div class="detail-nav" id="detailNav">
-    <button class="detail-back" onclick="closeDetail()">&larr;</button>
-    <span class="detail-nav-title">${esc(item.title)}</span>
-    <span style="width:26px"></span>
-  </div>`;
   html += '</div>';
 
+  // Body content — white background, scrolls up over the hero
   html += '<div class="detail-body">';
   html += `<div class="detail-name">${esc(item.title)}</div>`;
   if (item.address && item.address.trim()) {
@@ -582,7 +591,7 @@ function openDetail(index) {
   document.getElementById('mapFab').style.display = 'none';
   history.pushState({ view: 'detail', index }, '');
 
-  // Collapsing hero scroll handler
+  // Scroll handler: parallax hero + sticky nav transition
   detailEl.addEventListener('scroll', handleDetailScroll);
 
   // Init detail map
@@ -599,21 +608,23 @@ function openDetail(index) {
 }
 
 function handleDetailScroll() {
-  const heroWrap = document.getElementById('heroWrap');
   const nav = document.getElementById('detailNav');
-  if (!heroWrap || !nav) return;
+  const heroImg = document.getElementById('heroImg');
+  if (!nav) return;
 
   const scrollTop = document.getElementById('detail').scrollTop;
-  const range = HERO_MAX - HERO_MIN;
-  const progress = Math.min(scrollTop / range, 1);
-  const newHeight = HERO_MAX - (progress * range);
+  const collapsePoint = HERO_HEIGHT - NAV_HEIGHT;
 
-  heroWrap.style.height = newHeight + 'px';
+  // Parallax: hero image scrolls at 50% speed
+  if (heroImg) {
+    heroImg.style.transform = `translateY(${scrollTop * 0.4}px)`;
+  }
 
-  if (progress > 0.7) {
-    nav.classList.add('collapsed');
+  // Nav becomes solid navy when hero is scrolled past
+  if (scrollTop >= collapsePoint) {
+    nav.classList.add('solid');
   } else {
-    nav.classList.remove('collapsed');
+    nav.classList.remove('solid');
   }
 }
 
