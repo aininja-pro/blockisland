@@ -125,9 +125,12 @@ function parseDescriptionToHtml(description) {
  * @returns {Object} GoodBarber-formatted item
  */
 function transformToGoodBarber(listingData, sortDate) {
-  const id = listingData.goodbarber_id
+  // Use fresh IDs so GoodBarber imports items as new (not matched to old CMS records).
+  // This ensures our synthetic dates are used for sorting, not the old CMS internal dates.
+  const baseId = listingData.goodbarber_id
     ? parseInt(listingData.goodbarber_id, 10)
     : hashCode(listingData.id);
+  const id = baseId + 1;
 
   const images = [];
   if (listingData.image_url) {
