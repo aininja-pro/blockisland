@@ -135,11 +135,13 @@ function transformToGoodBarber(listingData) {
   // Convert description (JSON blocks or legacy HTML) to HTML for GoodBarber
   let contentHtml = parseDescriptionToHtml(listingData.description);
 
-  // Prepend hero image with matching id for GoodBarber native app
-  // Native app links images array to content HTML via shared id attribute
+  // Match GoodBarber's exact content HTML structure from their official example
+  // Hero image div + <br clear> + text in <div class="texte"> + <br clear>
   if (listingData.image_url) {
-    const heroHtml = `<div class="photo top" style="text-align:center"> <a href="${listingData.image_url}" target="_blank"> <img id="img-${id}" src="${listingData.image_url}" alt="${listingData.name || ''}" title="${listingData.name || ''}" /> </a> </div>`;
-    contentHtml = heroHtml + '\n' + contentHtml;
+    const heroHtml = ` <div class="photo top" style="text-align:center"> <a href="${listingData.image_url}" target="_blank"> <img id="img-${id}" src="${listingData.image_url}" alt="${listingData.name || ''}" title="${listingData.name || ''}" /> </a> </div> <br class="clear" /> `;
+    contentHtml = heroHtml + `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
+  } else {
+    contentHtml = `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
   }
 
   return {
@@ -153,6 +155,7 @@ function transformToGoodBarber(listingData) {
     longitude: String(listingData.longitude || ''),
     phoneNumber: listingData.phone || '',
     email: listingData.email || '',
+    url: '',
     website: listingData.website || '',
     date: listingData.created_at || '',
     type: 'maps',
