@@ -129,11 +129,18 @@ function transformToGoodBarber(listingData) {
 
   const images = [];
   if (listingData.image_url) {
-    images.push({ url: listingData.image_url });
+    images.push({ id: `img-${id}`, url: listingData.image_url });
   }
 
   // Convert description (JSON blocks or legacy HTML) to HTML for GoodBarber
-  const contentHtml = parseDescriptionToHtml(listingData.description);
+  let contentHtml = parseDescriptionToHtml(listingData.description);
+
+  // Prepend hero image with matching id for GoodBarber native app
+  // Native app links images array to content HTML via shared id attribute
+  if (listingData.image_url) {
+    const heroHtml = `<div class="photo top" style="text-align:center"><img id="img-${id}" src="${listingData.image_url}" alt="" /></div>`;
+    contentHtml = heroHtml + '\n' + contentHtml;
+  }
 
   return {
     id,
