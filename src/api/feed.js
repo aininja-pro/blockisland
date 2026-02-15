@@ -138,7 +138,7 @@ function transformToGoodBarber(listingData) {
   // Prepend hero image with matching id for GoodBarber native app
   // Native app links images array to content HTML via shared id attribute
   if (listingData.image_url) {
-    const heroHtml = `<div class="photo top" style="text-align:center"><img id="img-${id}" src="${listingData.image_url}" alt="" /></div>`;
+    const heroHtml = `<div class="photo top" style="text-align:center"> <a href="${listingData.image_url}" target="_blank"> <img id="img-${id}" src="${listingData.image_url}" alt="${listingData.name || ''}" title="${listingData.name || ''}" /> </a> </div>`;
     contentHtml = heroHtml + '\n' + contentHtml;
   }
 
