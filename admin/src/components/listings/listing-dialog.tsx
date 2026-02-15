@@ -40,14 +40,18 @@ export function ListingDialog({
           toast.error(result.error)
           return
         }
-        toast.success('Listing updated successfully')
+        toast.success('Listing updated successfully', {
+          description: 'Changes appear in the app within 15–30 minutes.',
+        })
       } else {
         const result = await createListingAction(data)
         if (result.error) {
           toast.error(result.error)
           return
         }
-        toast.success('Listing created successfully')
+        toast.success('Listing created successfully', {
+          description: 'It will appear in the app within 15–30 minutes.',
+        })
       }
       onClose(true)
     } catch (error) {

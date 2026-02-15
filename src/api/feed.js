@@ -263,6 +263,11 @@ router.get('/maps', async (req, res) => {
     const publishedListings = filterPublished(listings);
     const items = publishedListings.map(transformToGoodBarber);
 
+    // Tell GoodBarber (and any proxy) not to cache stale data
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     res.json({
       items,
       next_page: null,

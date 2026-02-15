@@ -3,6 +3,7 @@ import { getDashboardStats, getRecentlyUpdated } from '@/lib/queries/dashboard'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
+import { AppSyncInfo } from '@/components/dashboard/app-sync-info'
 import { List, Star, Folder, Calendar } from 'lucide-react'
 
 export default async function DashboardPage() {
@@ -61,9 +62,10 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <QuickActions />
         <RecentActivity listings={recentListings} />
+        <AppSyncInfo />
       </div>
     </div>
   )
