@@ -160,6 +160,7 @@ function transformToGoodBarber(listingData) {
     type: 'maps',
     subtype: 'custom',
     categories: listingData.subcategory_name ? [listingData.subcategory_name] : [],
+    isFeatured: listingData.image_url ? `img-${id}` : '',
     commentsEnabled: false,
     nbcomments: 0,
     thumbnail: listingData.image_url || '',
