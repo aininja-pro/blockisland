@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useCallback, useState } from 'react'
-import { ImageIcon, Upload, X } from 'lucide-react'
+import { Upload, X, Link } from 'lucide-react'
 import { PhotoBlockData } from '../block-editor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,7 @@ interface PhotoBlockProps {
 export function PhotoBlock({ data, onChange }: PhotoBlockProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -77,22 +78,60 @@ export function PhotoBlock({ data, onChange }: PhotoBlockProps) {
           </Button>
         </div>
       ) : (
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
-        >
-          {isUploading ? (
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
-              <span>Uploading...</span>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <Upload className="h-8 w-8" />
-              <span>Click to upload an image</span>
-              <span className="text-xs">JPEG, PNG, GIF, or WebP (max 5MB)</span>
-            </div>
-          )}
+        <div className="space-y-3">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+          >
+            {isUploading ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+                <span>Uploading...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <Upload className="h-8 w-8" />
+                <span>Click to upload an image</span>
+                <span className="text-xs">JPEG, PNG, GIF, or WebP (max 5MB)</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-muted-foreground text-xs">
+            <div className="flex-1 border-t" />
+            <span>or paste a URL</span>
+            <div className="flex-1 border-t" />
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              placeholder="https://example.com/image.jpg"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  if (urlInput.trim()) {
+                    onChange({ ...data, url: urlInput.trim() })
+                    setUrlInput('')
+                  }
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!urlInput.trim()}
+              onClick={() => {
+                onChange({ ...data, url: urlInput.trim() })
+                setUrlInput('')
+              }}
+            >
+              <Link className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
         </div>
       )}
 

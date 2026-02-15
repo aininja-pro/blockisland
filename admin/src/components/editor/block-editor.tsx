@@ -79,12 +79,11 @@ function createEmptyBlock(type: ContentBlockType): ContentBlock {
 }
 
 export function BlockEditor({ value, onChange }: BlockEditorProps) {
-  const [popoverOpen, setPopoverOpen] = useState(false)
-
-  const addBlock = useCallback((type: ContentBlockType) => {
+  const addBlock = useCallback((type: ContentBlockType, insertAt: number) => {
     const newBlock = createEmptyBlock(type)
-    onChange([...value, newBlock])
-    setPopoverOpen(false)
+    const newBlocks = [...value]
+    newBlocks.splice(insertAt, 0, newBlock)
+    onChange(newBlocks)
   }, [value, onChange])
 
   const updateBlock = useCallback((index: number, updatedBlock: ContentBlock) => {
@@ -109,41 +108,20 @@ export function BlockEditor({ value, onChange }: BlockEditorProps) {
   }, [value, onChange])
 
   return (
-    <div className="space-y-4">
-      {/* Add Element Button */}
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="default"
-            className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1.5 h-auto"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add an element
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-2 bg-zinc-900 border-zinc-800" align="start">
-          <div className="grid grid-cols-3 gap-1">
-            {BLOCK_TYPES.map(({ type, label, icon }) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => addBlock(type)}
-                className="flex flex-col items-center justify-center p-3 rounded-md hover:bg-zinc-800 text-white transition-colors min-w-[70px]"
-              >
-                {icon}
-                <span className="text-xs mt-1">{label}</span>
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+    <div className="space-y-2">
+      {/* Add button before first block */}
+      <AddElementButton onAdd={(type) => addBlock(type, 0)} />
 
-      {/* Block List */}
-      <div className="space-y-4">
-        {value.map((block, index) => (
+      {value.length === 0 && (
+        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center text-muted-foreground">
+          Click "+ Add an element" to start building your content
+        </div>
+      )}
+
+      {/* Blocks with Add buttons between them */}
+      {value.map((block, index) => (
+        <div key={index}>
           <BlockWrapper
-            key={index}
             index={index}
             totalBlocks={value.length}
             onDelete={() => removeBlock(index)}
@@ -181,14 +159,11 @@ export function BlockEditor({ value, onChange }: BlockEditorProps) {
               />
             )}
           </BlockWrapper>
-        ))}
-      </div>
 
-      {value.length === 0 && (
-        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center text-muted-foreground">
-          Click "Add an element" to start building your content
+          {/* Add button after this block */}
+          <AddElementButton onAdd={(type) => addBlock(type, index + 1)} />
         </div>
-      )}
+      ))}
     </div>
   )
 }
@@ -245,6 +220,46 @@ function BlockWrapper({ children, index, totalBlocks, onDelete, onMoveUp, onMove
         {children}
       </div>
     </div>
+  )
+}
+
+interface AddElementButtonProps {
+  onAdd: (type: ContentBlockType) => void
+}
+
+function AddElementButton({ onAdd }: AddElementButtonProps) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm py-2 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add an element
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2 bg-zinc-900 border-zinc-800" align="start">
+        <div className="grid grid-cols-3 gap-1">
+          {BLOCK_TYPES.map(({ type, label, icon }) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                onAdd(type)
+                setOpen(false)
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-md hover:bg-zinc-800 text-white transition-colors min-w-[70px]"
+            >
+              {icon}
+              <span className="text-xs mt-1">{label}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 

@@ -125,6 +125,10 @@
 }
 
 /* ProseMirror editor overrides */
+.ProseMirror img {
+  display: inline !important;
+  vertical-align: middle;
+}
 .ProseMirror table {
   border-collapse: collapse;
   width: 100%;

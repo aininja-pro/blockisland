@@ -99,6 +99,7 @@ export function RichTextEditor({
         alignments: ['left', 'center', 'right', 'justify'],
       }),
       Image.configure({
+        inline: true,
         HTMLAttributes: {
           class: 'max-w-full h-auto rounded-md',
         },
