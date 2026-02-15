@@ -135,9 +135,13 @@ function transformToGoodBarber(listingData) {
   // Convert description (JSON blocks or legacy HTML) to HTML for GoodBarber
   let contentHtml = parseDescriptionToHtml(listingData.description);
 
-  // No hero image in content — banner comes from thumbnail fields
-  // Wrap text in GoodBarber's expected structure
-  contentHtml = `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
+  // Include hero image in content for native app display
+  if (listingData.image_url) {
+    const heroHtml = ` <div class="photo top" style="text-align:center"> <a href="${listingData.image_url}" target="_blank"> <img id="img-${id}" src="${listingData.image_url}" alt="${listingData.name || ''}" title="${listingData.name || ''}" /> </a> </div> <br class="clear" /> `;
+    contentHtml = heroHtml + `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
+  } else {
+    contentHtml = `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
+  }
 
   return {
     id,
