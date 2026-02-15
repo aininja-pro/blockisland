@@ -16,7 +16,7 @@ export function AppSyncInfo() {
           To force an immediate refresh, open the section in GoodBarber and click Save.
         </p>
         <a
-          href="https://manage.goodbarber.com"
+          href="https://m.theblockislandapp.com/manage/app/content/"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
