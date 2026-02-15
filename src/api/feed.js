@@ -88,6 +88,8 @@ function blocksToHtml(blocks) {
       }
       case 'embed':
         return `<div class="content-embed">${block.html || ''}</div>`;
+      case 'button':
+        return `<p style="text-align: center;"><a href="${block.url || ''}" style="background-color: rgb(41, 84, 126); border: initial; border-radius: 1000em; color: rgb(255, 255, 255); padding: 10px 16px; text-align: center; text-decoration: none;">${block.text || ''}</a></p>`;
       default:
         return '';
     }
