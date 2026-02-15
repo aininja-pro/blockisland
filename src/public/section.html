@@ -8,10 +8,11 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     background: #fff;
     color: #333;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
   }
 
@@ -22,13 +23,13 @@
   .listing-row {
     display: flex;
     align-items: stretch;
-    padding: 10px 10px;
-    border-bottom: 1px solid #e8e8e8;
+    padding: 8px 8px;
+    border-bottom: 1px solid #ddd;
     cursor: pointer;
     -webkit-tap-highlight-color: rgba(0,0,0,0.05);
   }
   .listing-row:active {
-    background: #f5f5f5;
+    background: #f0f0f0;
   }
   .listing-thumb-wrap {
     position: relative;
@@ -39,23 +40,24 @@
   .listing-thumb {
     width: 100%;
     height: 100%;
-    min-height: 100px;
+    min-height: 105px;
     object-fit: cover;
     display: block;
-    border-radius: 4px;
+    border-radius: 3px;
   }
   .listing-info {
     flex: 1;
-    padding: 4px 0 4px 14px;
+    padding: 6px 0 6px 12px;
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
   .listing-title {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 700;
     color: #29547e;
-    line-height: 1.25;
+    line-height: 1.22;
+    letter-spacing: -0.2px;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -64,20 +66,21 @@
   .listing-address {
     font-size: 14px;
     color: #888;
-    margin-top: 4px;
+    margin-top: 5px;
+    font-weight: 400;
   }
 
   /* Map FAB */
   .map-fab {
     position: fixed;
-    bottom: 20px;
+    bottom: 24px;
     right: 20px;
-    width: 52px;
-    height: 52px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: #29547e;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border: 3px solid #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     cursor: pointer;
     z-index: 20;
     display: flex;
@@ -86,8 +89,8 @@
   }
   .map-fab svg {
     fill: #fff;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
   }
 
   /* ===== MAP VIEW ===== */
@@ -139,14 +142,24 @@
     transform: translateX(0);
   }
 
+  /* Collapsing hero */
   .detail-hero-wrap {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    overflow: hidden;
+    height: 280px;
+    min-height: 48px;
+    transition: height 0.05s linear;
   }
   .detail-hero {
     width: 100%;
-    display: block;
-    max-height: 300px;
+    height: 280px;
     object-fit: cover;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
   }
   .detail-nav {
     position: absolute;
@@ -155,7 +168,11 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 14px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent);
+    z-index: 12;
+    transition: background 0.15s;
+  }
+  .detail-nav.collapsed {
+    background: #29547e;
   }
   .detail-back {
     background: none;
@@ -164,17 +181,49 @@
     font-size: 26px;
     cursor: pointer;
     line-height: 1;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .detail-nav.collapsed .detail-back {
+    text-shadow: none;
+  }
+  .detail-nav-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 8px;
+  }
+  .detail-nav.collapsed .detail-nav-title {
+    opacity: 1;
+  }
+  /* Gradient overlay on hero image */
+  .detail-hero-gradient {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 70px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.35), transparent);
+    z-index: 11;
+    pointer-events: none;
   }
 
   .detail-body {
-    padding: 16px;
+    position: relative;
+    z-index: 5;
+    background: #fff;
+    padding: 18px 16px;
   }
   .detail-name {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
     color: #1a1a1a;
-    line-height: 1.2;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
     margin-bottom: 8px;
   }
   .detail-address-row {
@@ -183,6 +232,7 @@
     color: #777;
     font-size: 15px;
     margin-bottom: 16px;
+    font-weight: 400;
   }
   .detail-address-row svg {
     width: 16px;
@@ -206,10 +256,10 @@
     font-size: 15px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     cursor: pointer;
     text-decoration: none;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
   .see-route-btn svg {
     width: 20px;
@@ -220,13 +270,16 @@
 
   /* Detail content */
   .detail-content {
-    font-size: 16px;
-    line-height: 1.65;
+    font-size: 17px;
+    line-height: 1.6;
     color: #333;
     padding-bottom: 16px;
   }
   .detail-content p {
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  .detail-content p:empty {
+    margin-bottom: 0;
   }
   .detail-content img {
     max-width: 100%;
@@ -242,17 +295,18 @@
     display: inline-block;
     background: #29547e !important;
     color: #fff !important;
-    padding: 12px 24px !important;
+    padding: 12px 28px !important;
     border-radius: 25px !important;
     font-size: 15px;
     font-weight: 600;
     text-decoration: none;
+    letter-spacing: 0.3px;
   }
   .detail-content a[style*="background-color: rgb(204, 0, 0)"] {
     display: inline-block;
-    background: #c00 !important;
+    background: #b91c1c !important;
     color: #fff !important;
-    padding: 12px 24px !important;
+    padding: 12px 28px !important;
     border-radius: 25px !important;
     font-size: 15px;
     font-weight: 600;
@@ -266,23 +320,25 @@
     flex-wrap: wrap;
     gap: 10px;
     padding: 16px;
-    border-top: 1px solid #e8e8e8;
+    border-top: 1px solid #e0e0e0;
   }
   .action-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 18px;
+    padding: 12px 16px;
     border: 1.5px solid #29547e;
     border-radius: 25px;
     background: #fff;
     color: #29547e;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;
     flex: 1;
     min-width: 140px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
   .action-btn svg {
     width: 18px;
@@ -348,6 +404,9 @@
 const API_BASE = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const section = params.get('section') || '';
+
+const HERO_MAX = 280;
+const HERO_MIN = 48;
 
 let map, markers = [], items = [];
 let mapInitialized = false;
@@ -461,12 +520,16 @@ function openDetail(index) {
     ? `https://maps.google.com/maps?daddr=${lat},${lng}`
     : `https://maps.google.com/maps?q=${encodeURIComponent(item.address || item.title)}`;
 
-  let html = '<div class="detail-hero-wrap">';
+  let html = '';
+  html += `<div class="detail-hero-wrap" id="heroWrap">`;
   if (item.largeThumbnail || item.thumbnail) {
-    html += `<img class="detail-hero" src="${item.largeThumbnail || item.thumbnail}" alt="${esc(item.title)}" />`;
+    html += `<img class="detail-hero" id="heroImg" src="${item.largeThumbnail || item.thumbnail}" alt="${esc(item.title)}" />`;
   }
-  html += `<div class="detail-nav">
+  html += `<div class="detail-hero-gradient"></div>`;
+  html += `<div class="detail-nav" id="detailNav">
     <button class="detail-back" onclick="closeDetail()">&larr;</button>
+    <span class="detail-nav-title">${esc(item.title)}</span>
+    <span style="width:26px"></span>
   </div>`;
   html += '</div>';
 
@@ -512,10 +575,15 @@ function openDetail(index) {
     html += `<div class="detail-map" id="detail-map-${index}"></div>`;
   }
 
+  const detailEl = document.getElementById('detail');
   document.getElementById('detail-inner').innerHTML = html;
-  document.getElementById('detail').classList.add('open');
+  detailEl.classList.add('open');
+  detailEl.scrollTop = 0;
   document.getElementById('mapFab').style.display = 'none';
   history.pushState({ view: 'detail', index }, '');
+
+  // Collapsing hero scroll handler
+  detailEl.addEventListener('scroll', handleDetailScroll);
 
   // Init detail map
   if (hasCoords) {
@@ -530,10 +598,30 @@ function openDetail(index) {
   }
 }
 
+function handleDetailScroll() {
+  const heroWrap = document.getElementById('heroWrap');
+  const nav = document.getElementById('detailNav');
+  if (!heroWrap || !nav) return;
+
+  const scrollTop = document.getElementById('detail').scrollTop;
+  const range = HERO_MAX - HERO_MIN;
+  const progress = Math.min(scrollTop / range, 1);
+  const newHeight = HERO_MAX - (progress * range);
+
+  heroWrap.style.height = newHeight + 'px';
+
+  if (progress > 0.7) {
+    nav.classList.add('collapsed');
+  } else {
+    nav.classList.remove('collapsed');
+  }
+}
+
 function closeDetail() {
-  document.getElementById('detail').classList.remove('open');
+  const detailEl = document.getElementById('detail');
+  detailEl.removeEventListener('scroll', handleDetailScroll);
+  detailEl.classList.remove('open');
   document.getElementById('mapFab').style.display = 'flex';
-  // Clean up detail map
   setTimeout(() => {
     document.getElementById('detail-inner').innerHTML = '';
   }, 300);
