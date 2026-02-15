@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const feedRoutes = require('./api/feed');
@@ -14,6 +15,9 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Static files (custom section pages)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // API routes
 app.use('/api/feed', feedRoutes);
