@@ -14,7 +14,7 @@ export async function createListingAction(data: ListingFormData) {
   // Clean up optional fields
   const cleanedData = {
     name: listingFields.name,
-    category: listingFields.category || null,
+    category: listingFields.category || '',
     description: listingFields.description || null,
     address: listingFields.address || null,
     phone: listingFields.phone || null,
@@ -57,7 +57,7 @@ export async function updateListingAction(id: string, data: ListingFormData) {
   // Clean up optional fields
   const cleanedData = {
     name: listingFields.name,
-    category: listingFields.category || null,
+    category: listingFields.category || '',
     description: listingFields.description || null,
     address: listingFields.address || null,
     phone: listingFields.phone || null,

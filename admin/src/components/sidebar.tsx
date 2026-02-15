@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Home, List, Star, Folder, Menu } from 'lucide-react'
+import { Home, List, Star, Folder, Upload, Menu } from 'lucide-react'
 import { useState } from 'react'
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { name: 'Listings', href: '/listings', icon: List },
   { name: 'Premium Members', href: '/premium', icon: Star },
   { name: 'Categories', href: '/categories', icon: Folder },
+  { name: 'Import', href: '/import', icon: Upload },
 ]
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {

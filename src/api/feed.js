@@ -65,6 +65,8 @@ function blocksToHtml(blocks) {
       case 'text':
         return block.content || '';
       case 'photo': {
+        // Skip photos used as the location thumbnail (shown as hero image by GoodBarber)
+        if (block.isLocationThumbnail) return '';
         let html = '<figure class="content-photo">';
         html += `<img src="${block.url}" alt="${block.caption || ''}" />`;
         if (block.caption) {
