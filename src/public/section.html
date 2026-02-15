@@ -142,57 +142,10 @@
     transform: translateX(0);
   }
 
-  /* Sticky nav bar — starts transparent over hero, becomes solid navy */
-  .detail-sticky-nav {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    padding: 10px 14px;
-    height: 48px;
-    transition: background 0.2s;
-    background: transparent;
-  }
-  .detail-sticky-nav.solid {
-    background: #29547e;
-  }
-  .detail-sticky-nav .back-btn {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 28px;
-    cursor: pointer;
-    line-height: 1;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-    padding: 0;
-    width: 30px;
-  }
-  .detail-sticky-nav.solid .back-btn {
-    text-shadow: none;
-  }
-  .detail-sticky-nav .nav-title {
-    color: #fff;
-    font-size: 17px;
-    font-weight: 700;
-    flex: 1;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 0 8px;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  .detail-sticky-nav.solid .nav-title {
-    opacity: 1;
-  }
-
-  /* Hero image — sits behind the sticky nav via negative margin */
+  /* Hero image */
   .detail-hero-wrap {
     position: relative;
     height: 280px;
-    margin-top: -48px;
     overflow: hidden;
   }
   .detail-hero {
@@ -202,14 +155,6 @@
     display: block;
     will-change: transform;
   }
-  .detail-hero-gradient {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 80px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.35), transparent);
-    pointer-events: none;
-  }
-
   /* Detail body — white background, scrolls naturally over the hero */
   .detail-body {
     position: relative;
@@ -410,7 +355,6 @@ const params = new URLSearchParams(window.location.search);
 const section = params.get('section') || '';
 
 const HERO_HEIGHT = 280;
-const NAV_HEIGHT = 48;
 
 let map, markers = [], items = [];
 let mapInitialized = false;
@@ -527,18 +471,11 @@ function openDetail(index) {
   let html = '';
 
   // Sticky nav — only back button visible in detail view
-  html += `<div class="detail-sticky-nav" id="detailNav">
-    <button class="back-btn" onclick="closeDetail()">&larr;</button>
-    <span class="nav-title">${esc(item.title)}</span>
-    <span style="width:30px"></span>
-  </div>`;
-
-  // Hero image (sits behind sticky nav via negative top margin)
+  // Hero image
   html += `<div class="detail-hero-wrap">`;
   if (item.largeThumbnail || item.thumbnail) {
     html += `<img class="detail-hero" id="heroImg" src="${item.largeThumbnail || item.thumbnail}" alt="${esc(item.title)}" />`;
   }
-  html += `<div class="detail-hero-gradient"></div>`;
   html += '</div>';
 
   // Body content — white background, scrolls up over the hero
@@ -608,24 +545,13 @@ function openDetail(index) {
 }
 
 function handleDetailScroll() {
-  const nav = document.getElementById('detailNav');
   const heroImg = document.getElementById('heroImg');
-  if (!nav) return;
+  if (!heroImg) return;
 
   const scrollTop = document.getElementById('detail').scrollTop;
-  const collapsePoint = HERO_HEIGHT - NAV_HEIGHT;
 
-  // Parallax: hero image scrolls at 50% speed
-  if (heroImg) {
-    heroImg.style.transform = `translateY(${scrollTop * 0.4}px)`;
-  }
-
-  // Nav becomes solid navy when hero is scrolled past
-  if (scrollTop >= collapsePoint) {
-    nav.classList.add('solid');
-  } else {
-    nav.classList.remove('solid');
-  }
+  // Parallax: hero image scrolls at 40% speed for compression effect
+  heroImg.style.transform = `translateY(${scrollTop * 0.4}px)`;
 }
 
 function closeDetail() {
