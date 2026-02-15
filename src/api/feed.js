@@ -124,7 +124,7 @@ function parseDescriptionToHtml(description) {
  * @param {Object} listing - Listing from database
  * @returns {Object} GoodBarber-formatted item
  */
-function transformToGoodBarber(listingData) {
+function transformToGoodBarber(listingData, sortDate) {
   const id = listingData.goodbarber_id
     ? parseInt(listingData.goodbarber_id, 10)
     : hashCode(listingData.id);
@@ -158,7 +158,7 @@ function transformToGoodBarber(listingData) {
     email: listingData.email || '',
     url: '',
     website: listingData.website || '',
-    date: listingData.created_at || '',
+    date: sortDate || listingData.created_at || '',
     type: 'maps',
     subtype: 'custom',
     categories: listingData.subcategory_name ? [listingData.subcategory_name] : [],
@@ -261,7 +261,15 @@ router.get('/maps', async (req, res) => {
 
     // Filter to only published listings, then transform to GoodBarber format
     const publishedListings = filterPublished(listings);
-    const items = publishedListings.map(transformToGoodBarber);
+
+    // Generate synthetic dates that encode our sort order.
+    // GoodBarber sorts by date descending, so the first item (highest priority)
+    // gets the most recent date. This ensures premium-first ordering is preserved.
+    const now = new Date();
+    const items = publishedListings.map((l, index) => {
+      const sortDate = new Date(now.getTime() - index * 60000).toISOString();
+      return transformToGoodBarber(l, sortDate);
+    });
 
     // Tell GoodBarber (and any proxy) not to cache stale data
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');

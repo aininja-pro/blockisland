@@ -167,6 +167,11 @@ Returns listings in GoodBarber Custom Map Feed format.
 2. Non-premium listings second (alphabetically by name)
 3. When no section specified: grouped by section (alphabetically)
 
+**Date-Based Ordering for GoodBarber:**
+- GoodBarber sorts feed items by `date` descending, ignoring JSON array order
+- The API generates synthetic `date` values that encode the sort order: the first item (highest priority) gets the most recent timestamp, each subsequent item is 1 minute older
+- This ensures premium listings appear at the top in GoodBarber's display
+
 **Subcategory Filtering (categories field):**
 - When using `?section=X`, each listing includes a `categories` array with its subcategory name(s)
 - GoodBarber can use these values for filter tabs within a section
