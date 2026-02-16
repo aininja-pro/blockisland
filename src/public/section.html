@@ -127,7 +127,7 @@
     width: 100%;
   }
 
-  /* ===== DETAIL VIEW (overlay, no custom back button) ===== */
+  /* ===== DETAIL VIEW ===== */
   .detail-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -140,6 +140,16 @@
   }
   .detail-overlay.open {
     transform: translateX(0);
+  }
+  .detail-breadcrumb {
+    padding: 10px 16px;
+    font-size: 15px;
+    color: #29547e;
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.05);
+  }
+  .detail-breadcrumb:active {
+    background: #f0f0f0;
   }
   .detail-hero-wrap {
     position: relative;
@@ -452,6 +462,9 @@ function openDetail(index) {
     : `https://maps.google.com/maps?q=${encodeURIComponent(item.address || item.title)}`;
 
   let html = '';
+
+  const breadcrumbLabel = section || 'Back';
+  html += `<div class="detail-breadcrumb" onclick="closeDetail()">‹ ${esc(breadcrumbLabel)}</div>`;
 
   html += `<div class="detail-hero-wrap">`;
   if (item.largeThumbnail || item.thumbnail) {
