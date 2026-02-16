@@ -142,6 +142,33 @@
     transform: translateX(0);
   }
 
+  /* Detail back bar — overlaid on hero like native app */
+  .detail-back-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(41, 84, 126, 0.85);
+  }
+  .detail-back-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+  }
+  .detail-back-btn span {
+    font-size: 15px;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+
   /* Hero image */
   .detail-hero-wrap {
     position: relative;
@@ -470,12 +497,16 @@ function openDetail(index) {
 
   let html = '';
 
-  // Sticky nav — only back button visible in detail view
-  // Hero image
+  // Hero image with back bar overlay
   html += `<div class="detail-hero-wrap">`;
   if (item.largeThumbnail || item.thumbnail) {
     html += `<img class="detail-hero" id="heroImg" src="${item.largeThumbnail || item.thumbnail}" alt="${esc(item.title)}" />`;
   }
+  html += `<div class="detail-back-bar">
+    <button class="detail-back-btn" onclick="closeDetail()">
+      &larr;
+    </button>
+  </div>`;
   html += '</div>';
 
   // Body content — white background, scrolls up over the hero
