@@ -381,6 +381,35 @@ function formatDistance(miles) {
   return Math.round(miles).toLocaleString() + ' miles';
 }
 
+async function getUserLocation() {
+  // Try browser geolocation first
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+        renderList();
+      },
+      () => { ipFallback(); }, // If denied, try IP lookup
+      { timeout: 3000 }
+    );
+  } else {
+    ipFallback();
+  }
+}
+
+async function ipFallback() {
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    const data = await res.json();
+    if (data.latitude && data.longitude) {
+      userLat = data.latitude;
+      userLng = data.longitude;
+      renderList();
+    }
+  } catch (e) {} // Silently fail
+}
+
 async function loadSection() {
   try {
     const url = section
@@ -393,17 +422,8 @@ async function loadSection() {
     if (items.length > 0) {
       document.getElementById('mapFab').style.display = 'flex';
     }
-    // Request user location for distance badges
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          userLat = pos.coords.latitude;
-          userLng = pos.coords.longitude;
-          renderList(); // Re-render with distances
-        },
-        () => {} // Silently ignore if denied
-      );
-    }
+    // Get user location for distance badges
+    getUserLocation();
   } catch (err) {
     document.getElementById('listings').innerHTML =
       '<div class="loading">Failed to load listings.</div>';
