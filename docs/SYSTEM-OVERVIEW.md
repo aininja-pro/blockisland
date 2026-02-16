@@ -21,6 +21,9 @@ This document provides technical documentation for developers maintaining the sy
 │  │  ├── index.js          # Express app entry                  │    │
 │  │  ├── api/              # API routes                         │    │
 │  │  │   └── feed.js       # /api/feed/maps endpoint           │    │
+│  │  ├── public/           # Custom section pages (Plan B)     │    │
+│  │  │   ├── section.html  # List view (embedded in GB)        │    │
+│  │  │   └── detail.html   # Detail view (standalone)          │    │
 │  │  ├── models/           # Data access layer                  │    │
 │  │  │   └── listing.js    # Listing CRUD + rotation queries   │    │
 │  │  ├── services/         # Business logic                     │    │
@@ -81,7 +84,7 @@ This document provides technical documentation for developers maintaining the sy
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Two Applications
+## Three Components
 
 ### 1. Express API Server
 
@@ -115,6 +118,35 @@ GET /api/feed/maps?category=Restaurants   # Legacy category filter
 - Server Components for data fetching
 - Server Actions for mutations
 - Supabase SSR client (client/server/middleware pattern)
+
+### 3. Custom Section Pages (Plan B)
+
+**Purpose:** Backup approach if GoodBarber doesn't support sort ordering for custom map feeds. Renders listing sections as HTML pages embedded via iframe in GoodBarber's "Custom Code" section type, ensuring premium listings sort to the top.
+
+**Stack:**
+- Static HTML/CSS/JS served by Express (`src/public/`)
+- Leaflet.js for maps
+- Google Fonts (Lato + Poppins to match GoodBarber's app fonts)
+- IP-based geolocation (ipapi.co) for distance badges
+
+**How it works:**
+- `section.html` — List view showing listings with thumbnails, distance badges, and a map FAB button. Fetches from our API (`/api/feed/maps?section=X`) on load.
+- `detail.html` — Standalone detail page with hero image (parallax scroll), See Route button, action buttons (website, phone, email), and a Leaflet map.
+- Embedded in GoodBarber via iframe in a Custom Code section:
+  ```html
+  <iframe src="https://blockisland.onrender.com/section.html?section=Ferries" allow="geolocation"></iframe>
+  ```
+
+**Navigation:**
+- GoodBarber's native back button operates at the app section level only — it cannot navigate within the webview.
+- Detail view uses a slide-in overlay on the same page (`section.html`), not a separate page navigation.
+- A "‹ SectionName" breadcrumb at the top of the detail view provides back-to-list navigation.
+- GoodBarber's back arrow: detail → Getting Around (exits section). Breadcrumb: detail → list.
+
+**Key constraints:**
+- GoodBarber's webview blocks browser Geolocation API; uses ipapi.co IP-based fallback for distance badges.
+- `history.pushState`/`popstate` is NOT triggered by GoodBarber's native back button.
+- Cannot hide or control GoodBarber's native header bar from within the webview.
 
 ---
 
@@ -368,11 +400,13 @@ CREATE TABLE listing_categories (
 
 | File | Purpose |
 |------|---------|
-| `src/index.js` | Express app setup, routes |
+| `src/index.js` | Express app setup, routes, static file serving |
 | `src/api/feed.js` | /api/feed/maps endpoint |
 | `src/models/listing.js` | Database queries |
 | `src/services/rotation.js` | Rotation business logic |
 | `src/db/supabase.js` | Supabase client |
+| `src/public/section.html` | Custom code section list view (Plan B) |
+| `src/public/detail.html` | Custom code section detail view (Plan B) |
 
 ### Admin Interface
 
