@@ -45,6 +45,18 @@
     display: block;
     border-radius: 3px;
   }
+  .listing-distance {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
   .listing-info {
     flex: 1;
     padding: 6px 0 6px 12px;
@@ -351,6 +363,23 @@ const section = params.get('section') || '';
 
 let map, markers = [], items = [];
 let mapInitialized = false;
+let userLat = null, userLng = null;
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(miles) {
+  if (miles < 0.1) return '< 0.1 miles';
+  if (miles < 10) return miles.toFixed(1) + ' miles';
+  return Math.round(miles).toLocaleString() + ' miles';
+}
 
 async function loadSection() {
   try {
@@ -364,6 +393,17 @@ async function loadSection() {
     if (items.length > 0) {
       document.getElementById('mapFab').style.display = 'flex';
     }
+    // Request user location for distance badges
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLat = pos.coords.latitude;
+          userLng = pos.coords.longitude;
+          renderList(); // Re-render with distances
+        },
+        () => {} // Silently ignore if denied
+      );
+    }
   } catch (err) {
     document.getElementById('listings').innerHTML =
       '<div class="loading">Failed to load listings.</div>';
@@ -376,19 +416,26 @@ function renderList() {
     container.innerHTML = '<div class="loading">No listings found.</div>';
     return;
   }
-  container.innerHTML = items.map((item, i) => `
+  container.innerHTML = items.map((item, i) => {
+    let distBadge = '';
+    if (userLat !== null && item.latitude && item.longitude) {
+      const dist = haversineDistance(userLat, userLng, parseFloat(item.latitude), parseFloat(item.longitude));
+      distBadge = `<div class="listing-distance">${formatDistance(dist)}</div>`;
+    }
+    return `
     <div class="listing-row" onclick="openDetail(${i})">
       <div class="listing-thumb-wrap">
         ${item.thumbnail
           ? `<img class="listing-thumb" src="${item.thumbnail}" alt="${esc(item.title)}" loading="lazy" />`
           : ''}
+        ${distBadge}
       </div>
       <div class="listing-info">
         <div class="listing-title">${esc(item.title)}</div>
         ${item.address ? `<div class="listing-address">${esc(item.address.trim())}</div>` : ''}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function initMap() {
