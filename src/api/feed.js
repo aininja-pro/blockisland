@@ -270,7 +270,9 @@ router.get('/maps', async (req, res) => {
     // gets the most recent date. Dates are spaced 1 day apart for clear separation.
     const now = new Date();
     const items = publishedListings.map((l, index) => {
-      const sortDate = new Date(now.getTime() - index * 86400000).toISOString();
+      const d = new Date(now.getTime() - index * 86400000);
+      // Format as "2026-02-17T12:00:00+00:00" — GoodBarber requires explicit timezone offset
+      const sortDate = d.toISOString().replace(/\.\d{3}Z$/, '+00:00');
       return transformToGoodBarber(l, sortDate);
     });
 
