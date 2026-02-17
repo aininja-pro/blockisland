@@ -6,19 +6,21 @@
 <title>Ad</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
-  .ad-banner { display: none; width: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: transparent; overflow: hidden; }
+  .ad-banner { display: none; width: 100%; position: relative; }
   .ad-banner.visible { display: block; }
   .ad-banner a { display: block; }
   .ad-banner img { width: 100%; height: auto; display: block; }
+  .ad-label { position: absolute; top: 4px; right: 6px; font-size: 10px; color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.35); padding: 1px 5px; border-radius: 3px; pointer-events: none; }
 </style>
 </head>
 <body>
 
 <div class="ad-banner" id="adBanner">
-  <a id="adLink" href="#" target="_blank" rel="noopener">
+  <a id="adLink" href="#" target="_top" rel="noopener">
     <img id="adImage" src="" alt="" />
   </a>
+  <span class="ad-label">Ad</span>
 </div>
 
 <script>
