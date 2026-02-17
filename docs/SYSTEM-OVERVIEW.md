@@ -23,9 +23,14 @@ This document provides technical documentation for developers maintaining the sy
 │  │  │   └── feed.js       # /api/feed/maps endpoint           │    │
 │  │  ├── public/           # Custom section pages (Plan B)     │    │
 │  │  │   ├── section.html  # List view (embedded in GB)        │    │
-│  │  │   └── detail.html   # Detail view (standalone)          │    │
+│  │  │   ├── detail.html   # Detail view (standalone)          │    │
+│  │  │   └── ad-widget.html # Ad banner widget for GB home    │    │
+│  │  ├── api/              # API routes                         │    │
+│  │  │   ├── feed.js       # /api/feed/maps endpoint           │    │
+│  │  │   └── ads.js        # /api/ads/* ad serving endpoints   │    │
 │  │  ├── models/           # Data access layer                  │    │
-│  │  │   └── listing.js    # Listing CRUD + rotation queries   │    │
+│  │  │   ├── listing.js    # Listing CRUD + rotation queries   │    │
+│  │  │   └── ad.js         # Ad rotation + event logging       │    │
 │  │  ├── services/         # Business logic                     │    │
 │  │  │   └── rotation.js   # Daily rotation algorithm          │    │
 │  │  └── db/               # Database connection                │    │
@@ -58,6 +63,18 @@ This document provides technical documentation for developers maintaining the sy
 │  Table: listing_categories (many-to-many junction)                 │
 │  ├── listing_id → listings.id                                       │
 │  └── category_id → categories.id                                    │
+│                                                                     │
+│  Table: ads (Phase 2 - Ad management)                              │
+│  ├── id (uuid, PK)                                                  │
+│  ├── title, image_url, destination_url                              │
+│  ├── is_active (boolean), start_date, end_date                     │
+│  └── last_served_at (rotation), created_at, updated_at             │
+│                                                                     │
+│  Table: ad_events (impression + click tracking)                    │
+│  ├── id (uuid, PK)                                                  │
+│  ├── ad_id → ads.id (CASCADE)                                       │
+│  ├── event_type ('impression' | 'click')                            │
+│  └── created_at                                                     │
 └─────────────────────────────────┬───────────────────────────────────┘
                                   │
                                   │ Supabase SSR Auth
@@ -73,7 +90,8 @@ This document provides technical documentation for developers maintaining the sy
 │  │  │       ├── dashboard/    # Stats overview                │    │
 │  │  │       ├── listings/     # CRUD for listings             │    │
 │  │  │       ├── premium/      # Premium management            │    │
-│  │  │       └── categories/   # Category overview             │    │
+│  │  │       ├── categories/   # Category overview             │    │
+│  │  │       └── advertising/  # Ad banner management          │    │
 │  │  ├── components/           # React components              │    │
 │  │  ├── lib/                  # Utilities                     │    │
 │  │  │   ├── supabase/         # Client/server/middleware      │    │
@@ -259,6 +277,57 @@ Food & Drink section:
 
 ---
 
+## Ad Management System (Phase 2)
+
+### Overview
+
+Ad banners that rotate on the GoodBarber app home page. Admins create ads in the admin UI, the Express API serves them via round-robin rotation, and a self-contained HTML widget displays them.
+
+### Architecture
+
+- **Admin** (`/advertising`): CRUD for ads with image upload, toggle active, schedule dates, impressions/clicks/CTR stats table
+- **API** (`/api/ads/*`): 3 widget-facing endpoints — get active ad, log impression, log click
+- **Widget** (`/ad-widget.html`): Self-contained HTML/JS that fetches and displays the next ad banner
+
+### API Endpoints
+
+```
+GET  /api/ads/active           # Returns next ad in rotation (or null)
+POST /api/ads/:id/impression   # Log impression event
+POST /api/ads/:id/click        # Log click event
+```
+
+### Ad Rotation
+
+Uses `last_served_at` round-robin: each `GET /active` request picks the ad with the oldest `last_served_at` (nulls first), then updates it to `NOW()`. No cron needed — rotation happens naturally with each request.
+
+Ads are filtered by:
+- `is_active = true` (manual kill switch)
+- `start_date <= today` (or null for no start restriction)
+- `end_date >= today` (or null for no end restriction)
+
+### Widget Integration
+
+The widget (`ad-widget.html`) is embedded in GoodBarber's home page via Custom Code Widget or iframe. It:
+1. Fetches `GET /api/ads/active` on load
+2. Renders a full-width clickable banner image
+3. Fires impression via `navigator.sendBeacon` (fire-and-forget)
+4. On click: fires click beacon, then navigates to destination URL
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/models/ad.js` | Ad rotation + event logging |
+| `src/api/ads.js` | Express router for ad endpoints |
+| `src/public/ad-widget.html` | Self-contained widget for GoodBarber |
+| `admin/src/lib/queries/ads.ts` | Admin data queries + stats aggregation |
+| `admin/src/app/(protected)/advertising/` | Admin page + actions |
+| `admin/src/components/advertising/` | Ad form, dialog, table, delete dialog |
+| `src/db/migration-ads.sql` | SQL migration for ads + ad_events tables |
+
+---
+
 ## Environment Variables
 
 ### API Server (/.env)
@@ -402,11 +471,14 @@ CREATE TABLE listing_categories (
 |------|---------|
 | `src/index.js` | Express app setup, routes, static file serving |
 | `src/api/feed.js` | /api/feed/maps endpoint |
+| `src/api/ads.js` | /api/ads/* ad serving endpoints |
 | `src/models/listing.js` | Database queries |
+| `src/models/ad.js` | Ad rotation + event logging |
 | `src/services/rotation.js` | Rotation business logic |
 | `src/db/supabase.js` | Supabase client |
 | `src/public/section.html` | Custom code section list view (Plan B) |
 | `src/public/detail.html` | Custom code section detail view (Plan B) |
+| `src/public/ad-widget.html` | Ad banner widget for GoodBarber home |
 
 ### Admin Interface
 

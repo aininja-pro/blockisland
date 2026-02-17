@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ad</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+  .ad-banner { display: none; width: 100%; }
+  .ad-banner.visible { display: block; }
+  .ad-banner a { display: block; }
+  .ad-banner img { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+
+<div class="ad-banner" id="adBanner">
+  <a id="adLink" href="#" target="_blank" rel="noopener">
+    <img id="adImage" src="" alt="" />
+  </a>
+</div>
+
+<script>
+const API_BASE = 'https://blockisland.onrender.com';
+
+async function loadAd() {
+  try {
+    const res = await fetch(API_BASE + '/api/ads/active');
+    const data = await res.json();
+    if (!data.ad) return;
+
+    const ad = data.ad;
+    const banner = document.getElementById('adBanner');
+    const link = document.getElementById('adLink');
+    const img = document.getElementById('adImage');
+
+    img.src = ad.image_url;
+    img.alt = ad.title;
+    link.href = ad.destination_url;
+    banner.classList.add('visible');
+
+    // Fire impression beacon
+    navigator.sendBeacon(API_BASE + '/api/ads/' + ad.id + '/impression');
+
+    // Track click
+    link.addEventListener('click', function() {
+      navigator.sendBeacon(API_BASE + '/api/ads/' + ad.id + '/click');
+    });
+  } catch (e) {
+    // Silently fail — no ad is fine
+  }
+}
+
+loadAd();
+</script>
+</body>
+</html>

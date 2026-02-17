@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const feedRoutes = require('./api/feed');
+const adsRoutes = require('./api/ads');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +22,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // API routes
 app.use('/api/feed', feedRoutes);
+app.use('/api/ads', adsRoutes);
 
 // Start server
 app.listen(PORT, () => {
