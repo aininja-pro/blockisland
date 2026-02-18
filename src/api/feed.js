@@ -163,7 +163,7 @@ function transformToGoodBarber(listingData, sortDate) {
     website: listingData.website || '',
     date: sortDate || listingData.created_at || '',
     type: 'maps',
-    subtype: 'custom',
+    subtype: 'mcms',
     categories: listingData.subcategory_name ? [listingData.subcategory_name] : [],
     isFeatured: listingData.image_url ? `img-${id}` : '',
     commentsEnabled: false,
