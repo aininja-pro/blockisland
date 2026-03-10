@@ -4,27 +4,117 @@
  * GoodBarber JSON Import Script
  *
  * Imports listings from GoodBarber JSON export into Supabase database.
- * Handles the maps.json format from GoodBarber CMS exports.
+ * Handles multi-file input, status filtering, category mapping via URL slugs,
+ * and populates the categories + listing_categories tables.
  *
- * Usage: node src/scripts/import-goodbarber.js <path-to-json-file>
+ * Usage:
+ *   node src/scripts/import-goodbarber.js [--dry-run] [--reset] <file1.json> [file2.json ...]
  */
 
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const listing = require('../models/listing');
+const { supabase } = require('../db/supabase');
+
+// Service role client for category writes (bypasses RLS)
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+);
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Map GoodBarber URL slugs → display section names (23 known sections) */
+const SECTION_SLUG_MAP = {
+  'airlines-1': 'Airlines',
+  'bike-moped-cars': 'Bike, Moped, Cars',
+  'community-places': 'Community Places',
+  'food-drink': 'Food & Drink',
+  'galleries-theaters': 'Galleries & Theaters',
+  'hotels-20-rooms': 'Hotels (20+ Rooms)',
+  'inns': 'Inns',
+  'limousine-services': 'Limousine Services',
+  'mainland-accommodations-1': 'Mainland Accommodations',
+  'marinas': 'Marinas',
+  'museums': 'Museums',
+  'night-life': 'Nightlife',
+  'outdoor-activities': 'Outdoor Activities',
+  'page-bbs': 'B&Bs / Guest Houses',
+  'real-estate-1': 'Real Estate',
+  'services-home-business': 'Services - Home & Business',
+  'shopping': 'Shopping',
+  'sites-landmarks': 'Sites & Landmarks',
+  'spas-wellness': 'Spas & Wellness',
+  'sports-recreation': 'Sports & Recreation',
+  'taxis': 'Taxis',
+  'tours': 'Tours',
+  'weddings': 'Weddings & Special Events',
+};
+
+/** Subcategory names to ignore */
+const SKIP_SUBCATEGORIES = new Set([
+  'All',
+  'All categories',
+  'Main category',
+  'Listings',
+]);
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 /**
- * Map GoodBarber JSON item to our listing schema
+ * Extract section slug from a GoodBarber item URL.
+ * Example URL: https://m.theblockislandapp.com/food-drink/i/21371969/aldos-restaurant
+ * Returns the slug (e.g. "food-drink") or null.
+ */
+function extractSlug(url) {
+  if (!url) return null;
+  const m = url.match(/theblockislandapp\.com\/([^/]+)\/i\//);
+  return m ? m[1] : null;
+}
+
+/**
+ * Extract subcategory names from an item's subsections field.
+ * subsections can be a dict like { "22281868": ["Italian", "Bars", "Listings"] }
+ * or occasionally a list — we only process the dict form.
+ */
+function extractSubcategories(subsections) {
+  if (!subsections || Array.isArray(subsections) || typeof subsections !== 'object') {
+    return [];
+  }
+  const names = new Set();
+  for (const sectionId of Object.keys(subsections)) {
+    const arr = subsections[sectionId];
+    if (!Array.isArray(arr)) continue;
+    for (const name of arr) {
+      const trimmed = String(name).trim();
+      if (trimmed && !SKIP_SUBCATEGORIES.has(trimmed)) {
+        names.add(trimmed);
+      }
+    }
+  }
+  return [...names];
+}
+
+/**
+ * Map a GoodBarber JSON item to our listing schema.
+ * Returns { listing, sectionName, subcategories } or null if unmappable.
  */
 function mapGoodBarberItem(item) {
-  // Get best available image
+  const slug = extractSlug(item.url);
+  const sectionName = slug ? SECTION_SLUG_MAP[slug] : null;
+
+  // Best available image
   const imageUrl = item.thumbnail || item.largeThumbnail || item.originalThumbnail || item.smallThumbnail || null;
 
-  // Parse coordinates - GoodBarber sends as strings
+  // Parse coordinates
   let latitude = null;
   let longitude = null;
-
   if (item.latitude) {
     const parsed = parseFloat(item.latitude);
     if (!isNaN(parsed)) latitude = parsed;
@@ -34,213 +124,311 @@ function mapGoodBarberItem(item) {
     if (!isNaN(parsed)) longitude = parsed;
   }
 
+  const subcategories = extractSubcategories(item.subsections);
+
   return {
-    goodbarber_id: String(item.id),
-    name: item.title || null,
-    category: item.subtype || item.type || null,
-    description: item.content || item.summary || null,
-    address: item.address || null,
-    phone: item.phoneNumber || null,
-    website: item.website || null,
-    email: item.email || null,
-    latitude,
-    longitude,
-    image_url: imageUrl,
-    is_premium: false,
-    rotation_position: 0,
+    listing: {
+      goodbarber_id: String(item.id),
+      name: item.title || null,
+      category: sectionName || null,
+      section: sectionName || null,
+      description: item.content || item.summary || null,
+      address: item.address || null,
+      phone: item.phoneNumber || null,
+      website: item.website || null,
+      email: item.email || null,
+      latitude,
+      longitude,
+      image_url: imageUrl,
+      is_premium: false,
+      is_published: item.status === 'deleted',  // GB "deleted" = published, "draft"/null = draft
+      rotation_position: 0,
+    },
+    sectionName,
+    subcategories,
   };
 }
 
+// ---------------------------------------------------------------------------
+// Category helpers (Supabase direct)
+// ---------------------------------------------------------------------------
+
 /**
- * Validate a mapped listing
+ * Get or create a section (top-level category with parent_id = null).
+ * Uses select-then-insert because UNIQUE(name, parent_id) treats NULL as distinct.
  */
-function validateListing(item, originalId) {
-  const errors = [];
+async function getOrCreateSection(name) {
+  const { data: existing } = await supabaseAdmin
+    .from('categories')
+    .select('id')
+    .eq('name', name)
+    .is('parent_id', null)
+    .maybeSingle();
 
-  if (!item.name) {
-    errors.push('missing name/title');
-  }
-  if (!item.category) {
-    errors.push('missing category/subtype');
-  }
+  if (existing) return existing.id;
 
-  return errors;
+  const { data: inserted, error } = await supabaseAdmin
+    .from('categories')
+    .insert({ name, parent_id: null })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return inserted.id;
 }
 
 /**
- * Main import function
+ * Get or create a subcategory under a section.
+ * Uses upsert with onConflict since parent_id is non-null here.
  */
-async function importFromFile(filePath) {
+async function getOrCreateSubcategory(name, parentId) {
+  const { data, error } = await supabaseAdmin
+    .from('categories')
+    .upsert({ name, parent_id: parentId }, { onConflict: 'name,parent_id' })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return data.id;
+}
+
+/**
+ * Link a listing to a category via the listing_categories junction table.
+ * Uses upsert to avoid duplicates (composite PK).
+ */
+async function linkListingCategory(listingId, categoryId) {
+  const { error } = await supabaseAdmin
+    .from('listing_categories')
+    .upsert({ listing_id: listingId, category_id: categoryId }, {
+      onConflict: 'listing_id,category_id',
+    });
+
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+async function main() {
+  // Parse CLI args
+  const rawArgs = process.argv.slice(2);
+
+  if (rawArgs.length === 0 || rawArgs.includes('--help') || rawArgs.includes('-h')) {
+    console.log(`
+GoodBarber Import Script
+========================
+
+Imports listings from GoodBarber JSON exports into Supabase.
+
+Usage:
+  node src/scripts/import-goodbarber.js [options] <file1.json> [file2.json ...]
+
+Options:
+  --dry-run           Parse and validate only, no DB writes
+  --reset             Delete all previously-imported listings before importing
+  --help, -h          Show this help
+`);
+    process.exit(0);
+  }
+
+  const dryRun = rawArgs.includes('--dry-run');
+  const reset = rawArgs.includes('--reset');
+  const filePaths = rawArgs.filter(a => !a.startsWith('--'));
+
+  if (filePaths.length === 0) {
+    console.error('Error: No input files specified.');
+    process.exit(1);
+  }
+
   console.log(`\nGoodBarber Import Script`);
-  console.log(`========================\n`);
-  console.log(`Source: ${filePath}\n`);
+  console.log(`========================`);
+  if (dryRun) console.log(`  [DRY RUN — no DB writes]\n`);
 
-  // Read and parse JSON file
-  let data;
-  try {
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    data = JSON.parse(fileContent);
-  } catch (err) {
-    console.error(`Error reading file: ${err.message}`);
-    process.exit(1);
+  // ── Step 1: Read all files ──────────────────────────────────────────────
+  let allItems = [];
+  for (const fp of filePaths) {
+    if (!fs.existsSync(fp)) {
+      console.error(`Error: File not found: ${fp}`);
+      process.exit(1);
+    }
+    try {
+      const raw = JSON.parse(fs.readFileSync(fp, 'utf-8'));
+      const items = Array.isArray(raw) ? raw : (raw.items || []);
+      allItems = allItems.concat(items);
+    } catch (err) {
+      console.error(`Error reading ${fp}: ${err.message}`);
+      process.exit(1);
+    }
   }
 
-  // Handle both formats: { items: [...] } or direct array
-  let items;
-  if (Array.isArray(data)) {
-    items = data;
-  } else if (data.items && Array.isArray(data.items)) {
-    items = data.items;
-  } else {
-    console.error('Invalid JSON format. Expected { items: [...] } or array of items.');
-    process.exit(1);
+  const totalScanned = allItems.length;
+
+  // ── Step 1b: Reset if requested ───────────────────────────────────────
+  if (reset && !dryRun) {
+    console.log(`\nResetting previously-imported listings...`);
+
+    // Delete junction table entries for imported listings
+    const { data: imported } = await supabaseAdmin
+      .from('listings')
+      .select('id')
+      .not('goodbarber_id', 'is', null);
+
+    if (imported && imported.length > 0) {
+      const ids = imported.map(r => r.id);
+      const { error: junctionErr } = await supabaseAdmin
+        .from('listing_categories')
+        .delete()
+        .in('listing_id', ids);
+      if (junctionErr) throw junctionErr;
+
+      const { error: listingsErr } = await supabaseAdmin
+        .from('listings')
+        .delete()
+        .not('goodbarber_id', 'is', null);
+      if (listingsErr) throw listingsErr;
+
+      console.log(`  Deleted ${imported.length} listings and their category links.`);
+    } else {
+      console.log(`  No previously-imported listings found.`);
+    }
+  } else if (reset && dryRun) {
+    console.log(`\n[DRY RUN] Would delete all previously-imported listings before importing.`);
   }
 
-  console.log(`Found ${items.length} items to import\n`);
+  // ── Step 2+3: Filter and map ────────────────────────────────────────────
+  let skippedNoSection = 0;
+  const mapped = []; // { listing, sectionName, subcategories }
 
-  // Track results
-  const results = {
-    total: items.length,
-    valid: 0,
-    skipped: 0,
-    warnings: [],
-    skipReasons: [],
-  };
-
-  const validListings = [];
-
-  // Map and validate each item
-  for (const item of items) {
-    const mapped = mapGoodBarberItem(item);
-    const errors = validateListing(mapped, item.id);
-
-    if (errors.length > 0) {
-      results.skipped++;
-      results.skipReasons.push(`ID ${item.id}: ${errors.join(', ')}`);
+  for (const item of allItems) {
+    // Section filter — skip items with no valid section URL
+    const slug = extractSlug(item.url);
+    if (!slug || !SECTION_SLUG_MAP[slug]) {
+      skippedNoSection++;
       continue;
     }
 
-    // Log warnings for missing optional data
-    if (!mapped.latitude || !mapped.longitude) {
-      results.warnings.push(`ID ${item.id} (${mapped.name}): missing coordinates`);
-    }
-    if (!mapped.phone) {
-      results.warnings.push(`ID ${item.id} (${mapped.name}): missing phone`);
-    }
-
-    validListings.push(mapped);
-    results.valid++;
+    const result = mapGoodBarberItem(item);
+    mapped.push(result);
   }
 
-  // Show validation results
-  console.log(`Validation Results:`);
-  console.log(`  Valid items: ${results.valid}`);
-  console.log(`  Skipped: ${results.skipped}`);
+  // ── Summary counts ─────────────────────────────────────────────────────
+  const publishedCount = mapped.filter(m => m.listing.is_published).length;
+  const draftCount = mapped.length - publishedCount;
 
-  if (results.skipReasons.length > 0) {
-    console.log(`\nSkipped items:`);
-    results.skipReasons.forEach(reason => console.log(`  - ${reason}`));
-  }
+  console.log(`Files: ${filePaths.length}`);
+  console.log(`Total items scanned: ${totalScanned}`);
+  console.log(`  Skipped (no section/URL): ${skippedNoSection}`);
+  console.log(`  Imported: ${mapped.length}`);
+  console.log(`    Published: ${publishedCount}`);
+  console.log(`    Draft/Not Listed: ${draftCount}`);
 
-  if (results.warnings.length > 0) {
-    console.log(`\nWarnings (will import with null values):`);
-    results.warnings.forEach(warning => console.log(`  - ${warning}`));
-  }
-
-  if (validListings.length === 0) {
+  if (mapped.length === 0) {
     console.log('\nNo valid items to import.');
     return;
   }
 
-  // Import to database
-  console.log(`\nImporting ${validListings.length} listings to database...`);
+  if (dryRun) {
+    // Show what would happen
+    const sections = [...new Set(mapped.map(m => m.sectionName))].sort();
+    const allSubs = new Set();
+    for (const m of mapped) m.subcategories.forEach(s => allSubs.add(s));
 
-  try {
-    const importResult = await listing.upsertByGoodBarberId(validListings);
-    console.log(`\nImport complete!`);
-    console.log(`  Processed: ${importResult.count} records`);
-    console.log(`\nDone.`);
-  } catch (err) {
-    console.error(`\nDatabase error: ${err.message}`);
-    process.exit(1);
+    console.log(`\nSections that would be created/verified: ${sections.length}`);
+    console.log(`Subcategories that would be created/verified: ${allSubs.size}`);
+    console.log(`\n[DRY RUN] No database changes made.`);
+    printFeedUrls(sections);
+    return;
   }
+
+  // ── Step 4a: Upsert listings ───────────────────────────────────────────
+  console.log(`\nUpserting ${mapped.length} listings...`);
+  const listingsToUpsert = mapped.map(m => m.listing);
+  const importResult = await listing.upsertByGoodBarberId(listingsToUpsert);
+  console.log(`  Processed: ${importResult.count} records`);
+
+  // ── Step 4b: Get DB IDs for imported listings ──────────────────────────
+  const gbIds = mapped.map(m => m.listing.goodbarber_id);
+  const { data: dbListings, error: fetchErr } = await supabase
+    .from('listings')
+    .select('id, goodbarber_id')
+    .in('goodbarber_id', gbIds);
+
+  if (fetchErr) throw fetchErr;
+
+  // Build map: goodbarber_id → DB uuid
+  const gbIdToDbId = {};
+  for (const row of dbListings) {
+    gbIdToDbId[row.goodbarber_id] = row.id;
+  }
+
+  // ── Step 4c: Upsert sections + subcategories ──────────────────────────
+  console.log(`\nPopulating categories...`);
+  const sectionNames = [...new Set(mapped.map(m => m.sectionName))];
+  const sectionIdMap = {}; // sectionName → uuid
+
+  for (const name of sectionNames) {
+    sectionIdMap[name] = await getOrCreateSection(name);
+  }
+  console.log(`  Sections created/verified: ${sectionNames.length}`);
+
+  // Collect all unique (sectionName, subcategoryName) pairs
+  const subPairs = new Set();
+  for (const m of mapped) {
+    for (const sub of m.subcategories) {
+      subPairs.add(`${m.sectionName}|||${sub}`);
+    }
+  }
+
+  const subIdMap = {}; // "sectionName|||subName" → uuid
+  for (const key of subPairs) {
+    const [secName, subName] = key.split('|||');
+    subIdMap[key] = await getOrCreateSubcategory(subName, sectionIdMap[secName]);
+  }
+  console.log(`  Subcategories created/verified: ${subPairs.size}`);
+
+  // ── Step 4d: Link listings to categories ───────────────────────────────
+  console.log(`\nLinking listings to categories...`);
+  let linkCount = 0;
+
+  for (const m of mapped) {
+    const dbId = gbIdToDbId[m.listing.goodbarber_id];
+    if (!dbId) continue;
+
+    if (m.subcategories.length > 0) {
+      // Link to each subcategory
+      for (const sub of m.subcategories) {
+        const key = `${m.sectionName}|||${sub}`;
+        await linkListingCategory(dbId, subIdMap[key]);
+        linkCount++;
+      }
+    } else {
+      // No subcategories — link directly to the section
+      await linkListingCategory(dbId, sectionIdMap[m.sectionName]);
+      linkCount++;
+    }
+  }
+  console.log(`  Category links created: ${linkCount}`);
+
+  // ── Final summary ──────────────────────────────────────────────────────
+  printFeedUrls(sectionNames.sort());
+  console.log(`\nDone.`);
 }
 
 /**
- * Show usage help
+ * Print the feed URL reference for all imported sections.
  */
-function showHelp() {
-  console.log(`
-GoodBarber Import Script
-========================
-
-Imports listings from GoodBarber JSON export into Supabase database.
-
-Usage:
-  node src/scripts/import-goodbarber.js <path-to-json-file>
-  node src/scripts/import-goodbarber.js --help
-
-Arguments:
-  <path-to-json-file>  Path to GoodBarber JSON export file
-
-Expected JSON format:
-  {
-    "items": [
-      {
-        "id": 12345,
-        "title": "Business Name",
-        "subtype": "restaurants",
-        "address": "123 Main St",
-        "latitude": "41.1736",
-        "longitude": "-71.5643",
-        "phoneNumber": "+1-401-555-0123",
-        "email": "contact@example.com",
-        "website": "https://example.com",
-        "content": "<p>Description</p>",
-        "thumbnail": "https://cdn.example.com/image.jpg"
-      }
-    ],
-    "stat": "ok"
+function printFeedUrls(sections) {
+  console.log(`\nFeed URL Reference (for GoodBarber Custom Map Feed config):`);
+  const base = 'https://blockisland.onrender.com/api/feed/maps?section=';
+  const maxLen = Math.max(...sections.map(s => s.length));
+  for (const name of sections) {
+    const encoded = encodeURIComponent(name).replace(/%20/g, '%20').replace(/'/g, '%27');
+    console.log(`  ${name.padEnd(maxLen + 2)} → ${base}${encoded}`);
   }
-
-Field Mapping:
-  GoodBarber         → Our Schema
-  ─────────────────────────────────
-  id                 → goodbarber_id
-  title              → name
-  subtype            → category
-  content            → description
-  address            → address
-  phoneNumber        → phone
-  website            → website
-  email              → email
-  latitude           → latitude (parsed to float)
-  longitude          → longitude (parsed to float)
-  thumbnail          → image_url
-
-Notes:
-  - Script is idempotent: running twice updates existing records
-  - Missing coordinates: imports with null, logs warning
-  - Missing name or category: skips item, logs reason
-`);
 }
 
-// Main entry point
-const args = process.argv.slice(2);
-
-if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-  showHelp();
-  process.exit(0);
-}
-
-const filePath = args[0];
-
-if (!fs.existsSync(filePath)) {
-  console.error(`Error: File not found: ${filePath}`);
-  process.exit(1);
-}
-
-importFromFile(filePath).catch(err => {
-  console.error(`Fatal error: ${err.message}`);
+main().catch(err => {
+  console.error(`\nFatal error: ${err.message}`);
   process.exit(1);
 });
