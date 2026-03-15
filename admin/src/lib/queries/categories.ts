@@ -162,8 +162,10 @@ export async function getAllCategories(): Promise<Category[]> {
 export async function getCategoriesHierarchy(): Promise<CategoryWithChildren[]> {
   const allCategories = await getAllCategories()
 
-  // Get sections (parent_id = null)
-  const sections = allCategories.filter(c => c.parent_id === null)
+  // Get sections (parent_id = null), sorted alphabetically
+  const sections = allCategories
+    .filter(c => c.parent_id === null)
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   // Attach children to each section
   return sections.map(section => ({
