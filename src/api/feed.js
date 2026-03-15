@@ -124,13 +124,11 @@ function parseDescriptionToHtml(description) {
  * @param {Object} listing - Listing from database
  * @returns {Object} GoodBarber-formatted item
  */
-function transformToGoodBarber(listingData, sortDate) {
-  // Use fresh IDs so GoodBarber imports items as new (not matched to old CMS records).
-  // This ensures our synthetic dates are used for sorting, not the old CMS internal dates.
-  const baseId = listingData.goodbarber_id
-    ? parseInt(listingData.goodbarber_id, 10)
-    : hashCode(listingData.id);
-  const id = baseId + 1;
+function transformToGoodBarber(listingData, sortDate, sortId) {
+  // Use sort-order-based IDs so GoodBarber displays items in our intended order.
+  // GoodBarber sorts by ID descending regardless of array order, so the first item
+  // (highest priority) must get the highest ID.
+  const id = sortId;
 
   const images = [];
   if (listingData.image_url) {
@@ -265,15 +263,17 @@ router.get('/maps', async (req, res) => {
     // Filter to only published listings, then transform to GoodBarber format
     const publishedListings = filterPublished(listings);
 
-    // Generate synthetic dates that encode our sort order.
-    // GoodBarber sorts by date descending, so the first item (highest priority)
-    // gets the most recent date. Dates are spaced 1 day apart for clear separation.
+    // Generate synthetic dates and IDs that encode our sort order.
+    // GoodBarber sorts by ID descending, so the first item (highest priority)
+    // gets the highest ID. IDs start at a high base and count down.
+    // Dates are also synthetic as a fallback sort signal.
     const now = new Date();
+    const baseId = 90000000;
     const items = publishedListings.map((l, index) => {
       const d = new Date(now.getTime() - index * 86400000);
-      // Format as "2026-02-17T12:00:00+00:00" — GoodBarber requires explicit timezone offset
       const sortDate = d.toISOString().replace(/\.\d{3}Z$/, '+00:00');
-      return transformToGoodBarber(l, sortDate);
+      const sortId = baseId - index;
+      return transformToGoodBarber(l, sortDate, sortId);
     });
 
     // Tell GoodBarber (and any proxy) not to cache stale data
