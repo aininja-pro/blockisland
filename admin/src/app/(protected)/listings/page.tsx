@@ -1,21 +1,14 @@
 import { getListings, getCategories } from '@/lib/queries/listings'
-import { getCategoriesHierarchy, getListingCategoryIds } from '@/lib/queries/categories'
+import { getCategoriesHierarchy, getAllListingCategoryIds } from '@/lib/queries/categories'
 import { ListingsClient } from './client'
 
 export default async function ListingsPage() {
-  const [listings, filterCategories, categories] = await Promise.all([
+  const [listings, filterCategories, categories, listingCategoryIds] = await Promise.all([
     getListings(),
     getCategories(),
     getCategoriesHierarchy(),
+    getAllListingCategoryIds(),
   ])
-
-  // Fetch category assignments for all listings
-  const listingCategoryIds: Record<string, string[]> = {}
-  await Promise.all(
-    listings.map(async (listing) => {
-      listingCategoryIds[listing.id] = await getListingCategoryIds(listing.id)
-    })
-  )
 
   return (
     <div className="space-y-6">

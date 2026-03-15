@@ -191,6 +191,27 @@ export async function getListingCategoryIds(listingId: string): Promise<string[]
   return (data || []).map(row => row.category_id)
 }
 
+// Get all listing→category mappings in one query
+export async function getAllListingCategoryIds(): Promise<Record<string, string[]>> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('listing_categories')
+    .select('listing_id, category_id')
+
+  if (error) {
+    console.error('Error fetching all listing categories:', error)
+    throw error
+  }
+
+  const result: Record<string, string[]> = {}
+  for (const row of data || []) {
+    if (!result[row.listing_id]) result[row.listing_id] = []
+    result[row.listing_id].push(row.category_id)
+  }
+  return result
+}
+
 // Set categories for a listing (replaces existing)
 export async function setListingCategories(listingId: string, categoryIds: string[]): Promise<void> {
   const supabase = await createClient()

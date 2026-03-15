@@ -36,15 +36,16 @@ const SECTION_SLUG_MAP = {
   'food-drink': 'Food & Drink',
   'galleries-theaters': 'Galleries & Theaters',
   'hotels-20-rooms': 'Hotels (20+ Rooms)',
-  'inns': 'Inns',
+  'inns': "Inns/B&B's",
   'limousine-services': 'Limousine Services',
   'mainland-accommodations-1': 'Mainland Accommodations',
   'marinas': 'Marinas',
   'museums': 'Museums',
   'night-life': 'Nightlife',
   'outdoor-activities': 'Outdoor Activities',
-  'page-bbs': 'B&Bs / Guest Houses',
+  'page-bbs': 'Cottages/Apartments/Rooms',
   'real-estate-1': 'Real Estate',
+  'rentalsreal-estatetime-shar': 'Rentals/Real Estate/Time Share',
   'services-home-business': 'Services - Home & Business',
   'shopping': 'Shopping',
   'sites-landmarks': 'Sites & Landmarks',
@@ -53,6 +54,35 @@ const SECTION_SLUG_MAP = {
   'taxis': 'Taxis',
   'tours': 'Tours',
   'weddings': 'Weddings & Special Events',
+};
+
+/** Map GoodBarber numeric section IDs → display section names.
+ *  Built empirically from items with a single subsection key. */
+const GB_SECTION_ID_MAP = {
+  '23061887': 'Airlines',
+  '22667790': 'Cottages/Apartments/Rooms',
+  '23072113': 'Bike, Moped, Cars',
+  '22582573': 'Community Places',
+  '22281868': 'Food & Drink',
+  '22535870': 'Galleries & Theaters',
+  '22592269': 'Hotels (20+ Rooms)',
+  '22592254': "Inns/B&B's",
+  '75593337': 'Limousine Services',
+  '33403425': 'Mainland Accommodations',
+  '22810692': 'Marinas',
+  '23016956': 'Museums',
+  '36364760': 'Nightlife',
+  '22467200': 'Outdoor Activities',
+  '33583532': 'Real Estate',
+  '24566093': 'Services - Home & Business',
+  '22281870': 'Shopping',
+  '23016689': 'Sites & Landmarks',
+  '23017418': 'Spas & Wellness',
+  '22569265': 'Sports & Recreation',
+  '23056511': 'Taxis',
+  '23017140': 'Tours',
+  '23043616': 'Weddings & Special Events',
+  '76168259': 'Rentals/Real Estate/Time Share',
 };
 
 /** Subcategory names to ignore */
@@ -79,35 +109,42 @@ function extractSlug(url) {
 }
 
 /**
- * Extract subcategory names from an item's subsections field.
- * subsections can be a dict like { "22281868": ["Italian", "Bars", "Listings"] }
- * or occasionally a list — we only process the dict form.
+ * Extract per-section subcategory names from an item's subsections field.
+ * subsections is a dict like { "22281868": ["Italian", "Bars", "Listings"] }
+ * Returns a Map: sectionName → [subcategoryNames]
  */
-function extractSubcategories(subsections) {
+function extractSectionSubcategories(subsections) {
+  const result = new Map(); // sectionName → Set of subcategory names
   if (!subsections || Array.isArray(subsections) || typeof subsections !== 'object') {
-    return [];
+    return result;
   }
-  const names = new Set();
   for (const sectionId of Object.keys(subsections)) {
+    const sectionName = GB_SECTION_ID_MAP[sectionId];
+    if (!sectionName) continue; // unknown section ID (internal/demo)
+
     const arr = subsections[sectionId];
     if (!Array.isArray(arr)) continue;
+
+    if (!result.has(sectionName)) result.set(sectionName, new Set());
+    const subs = result.get(sectionName);
     for (const name of arr) {
       const trimmed = String(name).trim();
       if (trimmed && !SKIP_SUBCATEGORIES.has(trimmed)) {
-        names.add(trimmed);
+        subs.add(trimmed);
       }
     }
   }
-  return [...names];
+  return result;
 }
 
 /**
  * Map a GoodBarber JSON item to our listing schema.
- * Returns { listing, sectionName, subcategories } or null if unmappable.
+ * Returns { listing, sections } where sections is an array of
+ * { sectionName, subcategories[] } for each section the item belongs to.
  */
 function mapGoodBarberItem(item) {
   const slug = extractSlug(item.url);
-  const sectionName = slug ? SECTION_SLUG_MAP[slug] : null;
+  const primarySection = slug ? SECTION_SLUG_MAP[slug] : null;
 
   // Best available image
   const imageUrl = item.thumbnail || item.largeThumbnail || item.originalThumbnail || item.smallThumbnail || null;
@@ -124,14 +161,23 @@ function mapGoodBarberItem(item) {
     if (!isNaN(parsed)) longitude = parsed;
   }
 
-  const subcategories = extractSubcategories(item.subsections);
+  // Build sections list from subsections IDs
+  const sectionSubcats = extractSectionSubcategories(item.subsections);
+  const sections = [];
+  for (const [sectionName, subs] of sectionSubcats) {
+    sections.push({ sectionName, subcategories: [...subs] });
+  }
+  // If no sections found via IDs, fall back to URL-derived section
+  if (sections.length === 0 && primarySection) {
+    sections.push({ sectionName: primarySection, subcategories: [] });
+  }
 
   return {
     listing: {
       goodbarber_id: String(item.id),
       name: item.title || null,
-      category: sectionName || null,
-      section: sectionName || null,
+      category: primarySection || null,
+      section: primarySection || null,
       description: item.content || item.summary || null,
       address: item.address || null,
       phone: item.phoneNumber || null,
@@ -144,8 +190,7 @@ function mapGoodBarberItem(item) {
       is_published: item.status === 'deleted',  // GB "deleted" = published, "draft"/null = draft
       rotation_position: 0,
     },
-    sectionName,
-    subcategories,
+    sections,
   };
 }
 
@@ -298,7 +343,7 @@ Options:
 
   // ── Step 2+3: Filter and map ────────────────────────────────────────────
   let skippedNoSection = 0;
-  const mapped = []; // { listing, sectionName, subcategories }
+  const mapped = []; // { listing, sections: [{ sectionName, subcategories }] }
 
   for (const item of allItems) {
     // Section filter — skip items with no valid section URL
@@ -330,14 +375,19 @@ Options:
 
   if (dryRun) {
     // Show what would happen
-    const sections = [...new Set(mapped.map(m => m.sectionName))].sort();
+    const sections = new Set();
     const allSubs = new Set();
-    for (const m of mapped) m.subcategories.forEach(s => allSubs.add(s));
+    for (const m of mapped) {
+      for (const s of m.sections) {
+        sections.add(s.sectionName);
+        s.subcategories.forEach(sub => allSubs.add(sub));
+      }
+    }
 
-    console.log(`\nSections that would be created/verified: ${sections.length}`);
+    console.log(`\nSections that would be created/verified: ${sections.size}`);
     console.log(`Subcategories that would be created/verified: ${allSubs.size}`);
     console.log(`\n[DRY RUN] No database changes made.`);
-    printFeedUrls(sections);
+    printFeedUrls([...sections].sort());
     return;
   }
 
@@ -364,7 +414,11 @@ Options:
 
   // ── Step 4c: Upsert sections + subcategories ──────────────────────────
   console.log(`\nPopulating categories...`);
-  const sectionNames = [...new Set(mapped.map(m => m.sectionName))];
+  const sectionNamesSet = new Set();
+  for (const m of mapped) {
+    for (const s of m.sections) sectionNamesSet.add(s.sectionName);
+  }
+  const sectionNames = [...sectionNamesSet];
   const sectionIdMap = {}; // sectionName → uuid
 
   for (const name of sectionNames) {
@@ -375,8 +429,10 @@ Options:
   // Collect all unique (sectionName, subcategoryName) pairs
   const subPairs = new Set();
   for (const m of mapped) {
-    for (const sub of m.subcategories) {
-      subPairs.add(`${m.sectionName}|||${sub}`);
+    for (const s of m.sections) {
+      for (const sub of s.subcategories) {
+        subPairs.add(`${s.sectionName}|||${sub}`);
+      }
     }
   }
 
@@ -395,17 +451,19 @@ Options:
     const dbId = gbIdToDbId[m.listing.goodbarber_id];
     if (!dbId) continue;
 
-    if (m.subcategories.length > 0) {
-      // Link to each subcategory
-      for (const sub of m.subcategories) {
-        const key = `${m.sectionName}|||${sub}`;
-        await linkListingCategory(dbId, subIdMap[key]);
+    for (const s of m.sections) {
+      if (s.subcategories.length > 0) {
+        // Link to each subcategory
+        for (const sub of s.subcategories) {
+          const key = `${s.sectionName}|||${sub}`;
+          await linkListingCategory(dbId, subIdMap[key]);
+          linkCount++;
+        }
+      } else {
+        // No subcategories — link directly to the section
+        await linkListingCategory(dbId, sectionIdMap[s.sectionName]);
         linkCount++;
       }
-    } else {
-      // No subcategories — link directly to the section
-      await linkListingCategory(dbId, sectionIdMap[m.sectionName]);
-      linkCount++;
     }
   }
   console.log(`  Category links created: ${linkCount}`);

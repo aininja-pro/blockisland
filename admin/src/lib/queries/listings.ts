@@ -161,7 +161,7 @@ export async function getCategories(): Promise<string[]> {
 
   if (error) {
     console.error('Error fetching categories:', error)
-    throw error
+    return [] // Non-critical — hierarchical categories are the primary filter
   }
 
   const uniqueCategories = [...new Set(data?.map(d => d.category) || [])]

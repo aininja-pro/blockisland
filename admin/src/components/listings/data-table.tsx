@@ -80,12 +80,27 @@ export function DataTable<TData extends Listing, TValue>({
   }, [data, selectedCategoryIds, listingCategoryIds])
 
   const toggleCategory = (categoryId: string) => {
+    // Check if this is a parent section
+    const section = sectionCategories.find(s => s.id === categoryId)
+
     setSelectedCategoryIds(prev => {
       const next = new Set(prev)
       if (next.has(categoryId)) {
         next.delete(categoryId)
+        // If parent, also deselect all children
+        if (section?.children) {
+          for (const child of section.children) {
+            next.delete(child.id)
+          }
+        }
       } else {
         next.add(categoryId)
+        // If parent, also select all children
+        if (section?.children) {
+          for (const child of section.children) {
+            next.add(child.id)
+          }
+        }
       }
       return next
     })
@@ -136,12 +151,11 @@ export function DataTable<TData extends Listing, TValue>({
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: (row, columnId, filterValue) => {
-      const name = row.getValue('name') as string
-      const address = row.getValue('address') as string | null
+      const listing = row.original
       const searchValue = filterValue.toLowerCase()
       return (
-        name?.toLowerCase().includes(searchValue) ||
-        address?.toLowerCase().includes(searchValue) ||
+        listing.name?.toLowerCase().includes(searchValue) ||
+        listing.address?.toLowerCase().includes(searchValue) ||
         false
       )
     },
@@ -208,7 +222,15 @@ export function DataTable<TData extends Listing, TValue>({
                       </button>
                       <Checkbox
                         id={`section-${section.id}`}
-                        checked={selectedCategoryIds.has(section.id)}
+                        checked={
+                          section.children?.length > 0
+                            ? section.children.every(c => selectedCategoryIds.has(c.id))
+                              ? true
+                              : section.children.some(c => selectedCategoryIds.has(c.id))
+                                ? 'indeterminate'
+                                : selectedCategoryIds.has(section.id)
+                            : selectedCategoryIds.has(section.id)
+                        }
                         onCheckedChange={() => toggleCategory(section.id)}
                       />
                       <label
