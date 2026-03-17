@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
@@ -19,6 +19,10 @@ export function PremiumToggle({
 }: PremiumToggleProps) {
   const [loading, setLoading] = useState(false)
   const [checked, setChecked] = useState(isPremium)
+
+  useEffect(() => {
+    setChecked(isPremium)
+  }, [isPremium])
 
   const handleToggle = async (newValue: boolean) => {
     setLoading(true)

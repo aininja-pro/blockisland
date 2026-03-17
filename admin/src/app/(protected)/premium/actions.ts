@@ -1,10 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function togglePremiumAction(listingId: string, isPremium: boolean) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   if (isPremium) {
     // Setting to premium: get max rotation position for category
@@ -65,7 +65,7 @@ export async function togglePremiumAction(listingId: string, isPremium: boolean)
 }
 
 export async function togglePublishedAction(listingId: string, isPublished: boolean) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { error } = await supabase
     .from('listings')

@@ -2,6 +2,8 @@ import { getListings, getCategories } from '@/lib/queries/listings'
 import { getCategoriesHierarchy, getAllListingCategoryIds } from '@/lib/queries/categories'
 import { ListingsClient } from './client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ListingsPage() {
   const [listings, filterCategories, categories, listingCategoryIds] = await Promise.all([
     getListings(),
