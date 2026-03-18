@@ -5,12 +5,13 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Home, List, Star, Folder, Upload, Megaphone, Menu } from 'lucide-react'
+import { Home, List, Star, Folder, Upload, Megaphone, Calendar, Menu } from 'lucide-react'
 import { useState } from 'react'
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Listings', href: '/listings', icon: List },
+  { name: 'Events', href: '/events', icon: Calendar },
   { name: 'Premium Members', href: '/premium', icon: Star },
   { name: 'Categories', href: '/categories', icon: Folder },
   { name: 'Import', href: '/import', icon: Upload },

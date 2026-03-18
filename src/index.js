@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const feedRoutes = require('./api/feed');
+const eventsFeedRoutes = require('./api/events-feed');
 const adsRoutes = require('./api/ads');
 
 const app = express();
@@ -22,6 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // API routes
 app.use('/api/feed', feedRoutes);
+app.use('/api/feed/events', eventsFeedRoutes);
 app.use('/api/ads', adsRoutes);
 
 // Start server
