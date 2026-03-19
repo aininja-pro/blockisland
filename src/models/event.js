@@ -15,6 +15,33 @@ async function getAll() {
 }
 
 /**
+ * Get all published events, paginating past Supabase's 1000-row default limit.
+ * Sorted by start_date ascending.
+ * @returns {Promise<Array>} Array of published events
+ */
+async function getPublished() {
+  const pageSize = 1000;
+  let allData = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('is_published', true)
+      .order('start_date', { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+    allData = allData.concat(data || []);
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return allData;
+}
+
+/**
  * Get a single event by ID
  * @param {string} id - UUID of the event
  * @returns {Promise<Object|null>} Event object or null if not found
@@ -97,11 +124,27 @@ async function remove(id) {
   return true;
 }
 
+/**
+ * Upsert events by goodbarber_id (for import deduplication)
+ * @param {Array} events - Array of event objects with goodbarber_id
+ * @returns {Promise<Object>} { count, data }
+ */
+async function upsertByGoodBarberId(events) {
+  const { data, error } = await supabase
+    .from('events')
+    .upsert(events, { onConflict: 'goodbarber_id' })
+    .select();
+  if (error) throw error;
+  return { count: data.length, data };
+}
+
 module.exports = {
   getAll,
+  getPublished,
   getById,
   getUpcoming,
   create,
   update,
   delete: remove,
+  upsertByGoodBarberId,
 };

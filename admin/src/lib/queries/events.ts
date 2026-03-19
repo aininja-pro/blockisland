@@ -37,17 +37,30 @@ export type EventUpdate = Partial<EventInsert>
 
 export async function getEvents(): Promise<Event[]> {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .order('start_date', { ascending: true })
 
-  if (error) {
-    console.error('Error fetching events:', error)
-    throw error
+  // Fetch all events in pages of 1000 (Supabase default limit)
+  let allData: Event[] = []
+  let from = 0
+  const pageSize = 1000
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('start_date', { ascending: false })
+      .range(from, from + pageSize - 1)
+
+    if (error) {
+      console.error('Error fetching events:', error)
+      throw error
+    }
+
+    allData = allData.concat(data || [])
+    if (!data || data.length < pageSize) break
+    from += pageSize
   }
 
-  return data || []
+  return allData
 }
 
 export async function getEvent(id: string): Promise<Event | null> {

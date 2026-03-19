@@ -104,10 +104,7 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
 router.get('/', async (req, res) => {
   const startTime = Date.now();
   try {
-    const allEvents = await event.getAll();
-
-    // Filter to published events only
-    const publishedEvents = allEvents.filter(e => e.is_published !== false);
+    const publishedEvents = await event.getPublished();
 
     // Generate synthetic dates and IDs for GoodBarber sort ordering.
     // GoodBarber sorts by ID descending, so first event gets highest ID.
