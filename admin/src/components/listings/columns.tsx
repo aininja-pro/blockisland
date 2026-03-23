@@ -20,6 +20,7 @@ interface ColumnsProps {
   onDelete: (listing: Listing) => void
   onTogglePremium: (listingId: string, isPremium: boolean) => Promise<void>
   onTogglePublished: (listingId: string, isPublished: boolean) => Promise<void>
+  onSubscriptionDateChange: (listingId: string, date: string | null) => Promise<void>
   categories: CategoryWithChildren[]
   listingCategoryIds: Record<string, string[]>
 }
@@ -66,7 +67,7 @@ function getAppearsIn(
   return appearances
 }
 
-export function getColumns({ onEdit, onDelete, onTogglePremium, onTogglePublished, categories, listingCategoryIds }: ColumnsProps): ColumnDef<Listing>[] {
+export function getColumns({ onEdit, onDelete, onTogglePremium, onTogglePublished, onSubscriptionDateChange, categories, listingCategoryIds }: ColumnsProps): ColumnDef<Listing>[] {
   const categoryLookup = buildCategoryLookup(categories)
 
   return [
@@ -225,6 +226,24 @@ export function getColumns({ onEdit, onDelete, onTogglePremium, onTogglePublishe
         if (value === 'premium') return row.getValue(id) === true
         if (value === 'basic') return row.getValue(id) === false
         return true
+      },
+    },
+    {
+      accessorKey: 'subscription_date',
+      header: 'Subscription',
+      cell: ({ row }) => {
+        const listing = row.original
+        return (
+          <input
+            type="date"
+            defaultValue={listing.subscription_date || ''}
+            onChange={(e) => {
+              const value = e.target.value || null
+              onSubscriptionDateChange(listing.id, value)
+            }}
+            className="text-sm border rounded px-2 py-1 w-[140px] bg-transparent"
+          />
+        )
       },
     },
     // Hidden column for filtering by legacy category

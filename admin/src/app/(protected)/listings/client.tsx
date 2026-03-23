@@ -12,6 +12,7 @@ import { CategoryWithChildren } from '@/lib/queries/categories'
 import { ListingDialog } from '@/components/listings/listing-dialog'
 import { DeleteDialog } from '@/components/listings/delete-dialog'
 import { togglePremiumAction, togglePublishedAction } from '@/app/(protected)/premium/actions'
+import { updateSubscriptionDateAction } from '@/app/(protected)/listings/actions'
 
 interface ListingsClientProps {
   listings: Listing[]
@@ -68,6 +69,16 @@ export function ListingsClient({ listings, filterCategories, categories, listing
     router.refresh()
   }
 
+  const handleSubscriptionDateChange = async (listingId: string, date: string | null) => {
+    const result = await updateSubscriptionDateAction(listingId, date)
+    if (result.error) {
+      toast.error(result.error)
+      throw new Error(result.error)
+    }
+    toast.success('Subscription date updated')
+    router.refresh()
+  }
+
   const handleDialogClose = (refresh?: boolean) => {
     setDialogOpen(false)
     setEditListing(null)
@@ -89,6 +100,7 @@ export function ListingsClient({ listings, filterCategories, categories, listing
     onDelete: handleDelete,
     onTogglePremium: handleTogglePremium,
     onTogglePublished: handleTogglePublished,
+    onSubscriptionDateChange: handleSubscriptionDateChange,
     categories,
     listingCategoryIds,
   })

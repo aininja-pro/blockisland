@@ -26,6 +26,7 @@ export async function createListingAction(data: ListingFormData) {
     pin_icon_color: listingFields.pin_icon_color || null,
     pin_icon_url: listingFields.pin_icon_url || null,
     is_premium: listingFields.is_premium,
+    subscription_date: listingFields.subscription_date || null,
   }
 
   const { data: listing, error } = await supabase
@@ -69,6 +70,7 @@ export async function updateListingAction(id: string, data: ListingFormData) {
     pin_icon_color: listingFields.pin_icon_color || null,
     pin_icon_url: listingFields.pin_icon_url || null,
     is_premium: listingFields.is_premium,
+    subscription_date: listingFields.subscription_date || null,
   }
 
   const { error } = await supabase
@@ -95,6 +97,23 @@ export async function deleteListingAction(id: string) {
 
   if (error) {
     console.error('Error deleting listing:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/listings')
+  return { success: true }
+}
+
+export async function updateSubscriptionDateAction(id: string, subscriptionDate: string | null) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('listings')
+    .update({ subscription_date: subscriptionDate })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error updating subscription date:', error)
     return { error: error.message }
   }
 

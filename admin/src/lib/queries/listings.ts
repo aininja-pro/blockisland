@@ -18,6 +18,7 @@ export interface Listing {
   is_published: boolean
   rotation_position: number | null
   last_rotated_at: string | null
+  subscription_date: string | null
   created_at: string
   pin_icon_color: string | null
   pin_icon_url: string | null
@@ -41,6 +42,7 @@ export interface ListingInsert {
   pin_icon_url?: string | null
   is_premium?: boolean
   is_published?: boolean
+  subscription_date?: string | null
 }
 
 export type ListingUpdate = Partial<ListingInsert>

@@ -76,6 +76,7 @@ const listingSchema = z.object({
   pin_icon_color: z.string().optional().or(z.literal('')),
   pin_icon_url: z.string().url().optional().or(z.literal('')),
   is_premium: z.boolean(),
+  subscription_date: z.string().optional().or(z.literal('')),
 })
 
 export type ListingFormData = z.infer<typeof listingSchema>
@@ -119,6 +120,7 @@ export function ListingForm({
       pin_icon_color: listing?.pin_icon_color || '',
       pin_icon_url: listing?.pin_icon_url || '',
       is_premium: listing?.is_premium || false,
+      subscription_date: listing?.subscription_date || '',
     },
   })
 
@@ -500,6 +502,25 @@ export function ListingForm({
             </FormItem>
           )}
         />
+
+        {watchedValues.is_premium && (
+          <FormField
+            control={form.control}
+            name="subscription_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Subscription Start Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormDescription>
+                  When the premium subscription began (for renewal tracking)
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="flex justify-end gap-3 pt-4">
           <Button type="button" variant="outline" onClick={() => setPreviewOpen(true)}>
