@@ -34,9 +34,10 @@ Full workspace access required. Next.js admin + Express API + Supabase schema al
   /src/lib      → Queries, Supabase client, utilities
 /src            → Express API (GoodBarber feed endpoints)
   /api          → Route handlers (feed, events-feed, ads)
-  /models       → DB queries (listings, events)
+  /models       → DB queries (listings, events, ads)
   /services     → Business logic (rotation)
   /db           → Supabase client
+/widgets        → GoodBarber Custom Code Widget HTML files (3 ad slots)
 /docs           → Architecture, setup guides, GoodBarber integration notes
 /scripts        → One-off utility scripts
 ```
@@ -108,7 +109,7 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 - GoodBarber custom feed integration tested and live (switchable per section)
 - Premium tier system: premium listings sort above basic, auto-rotation on configurable schedule
 - Ferries section fully integrated
-- Advertising tab scaffolded in admin
+- Advertising system fully functional: 3-slot ad management, GoodBarber widget integration live
 
 **Completed (March 26, 2026) — 5 polish fixes from Rob call:**
 1. Clone/duplicate for events and listings — 3-dot menu "Duplicate" option, clones all fields + category assignments, strips `goodbarber_id` to avoid unique constraint violations, both listings and events use `"Name (Copy)"` suffix to sort adjacent to original
@@ -134,8 +135,25 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
    - Resolves category from `listing_categories` junction table when legacy `category` column is empty
    - `togglePremiumAction` now auto-sets `subscription_date` when adding to premium
 
-**Not Started:**
-- Phase 2: Ad Management System (Custom Code Widget approach, home screen placements)
+**Completed (March 26, 2026) — Phase 2: Ad Management System:**
+
+8. **Ad slot system** — Three independent ad slots for GoodBarber home page:
+   - Slots: `top_banner` (60px, 750x120), `middle_block` (180px, 750x360), `bottom_block` (180px, 750x360)
+   - DB: `ads` table with `slot` column, `ad_events` table for impression/click tracking
+   - Express API: `GET /api/ads/serve?slot=X` with per-slot round-robin rotation via `last_served_at`
+   - Legacy `GET /api/ads/active` preserved for backward compatibility
+   - Admin: Advertising page grouped by slot (three Card sections), each with its own table and "Add Ad" button
+   - Full CRUD: create, edit, duplicate ("Title (Copy)" suffix, inactive by default), delete
+   - Image upload via existing `/api/upload` → Supabase Storage
+   - Dynamic image size helper text based on selected slot
+   - Schedule toggle: "Run Always" or custom start/end date range
+   - Auto-deactivation: `deactivateExpiredAdsAction()` runs on page load, flips `is_active = false` for ads past `end_date`
+   - Last Served column with relative time display ("Just now", "2m ago", etc.)
+   - Impressions, clicks, CTR columns with live stats from `ad_events`
+   - Sorting: active ads first, then by newest
+   - Widget HTML files in `/widgets/` — three standalone files pasted into GoodBarber Custom Code Widgets
+   - RLS: required `UPDATE` policy on `ads` table for anon role (Express API uses anon key)
+   - Client components import types from `ad-types.ts` (not `ads.ts`) to avoid server-only `next/headers` in client bundle
 
 **Known Issues:**
 - Events feed endpoint is stubbed — awaiting GoodBarber schema export
@@ -152,6 +170,7 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 | Mar 2026 | Architecture review. CLAUDE.md created. | Blueprint for 5 fixes → Claude Code | Process formalized |
 | Mar 26, 2026 | 5 polish fixes: clone, hide sub date, auto-draft, category filter, compact sections | Sections table UI polish + Phase 2 scoping | `goodbarber_id` unique constraint caught during testing; `useSearchParams` required Suspense boundary |
 | Mar 26, 2026 | Sections page: full category management with expandable subcategories, inline edit, CRUD. Premium page: compact sortable table replacing card grid. | Phase 2 scoping | RLS bypass needed for category mutations; timezone bug on date display; legacy `category` column empty for some listings |
+| Mar 26, 2026 | Phase 2: Ad slot system — 3 independent slots, serve endpoint, admin grouped by slot, widget HTML files, auto-deactivation, duplicate, impressions/clicks/CTR tracking. Deployed and live in GoodBarber. | Polish / Phase 3 scoping | RLS UPDATE policy needed for anon key; `ad-types.ts` split to avoid server import in client bundle; zone height 60-70px for top banner |
 
 *Update this at the end of every session so the next session picks up with full context.*
 
@@ -165,3 +184,4 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 - **Fragile:** The GoodBarber feed JSON shape is rigid. The `isFeatured` field controls hero image display. Synthetic dates control sort order. Any change to feed output needs to be tested in the app before going live.
 - **Auth:** Supabase Auth protects all admin routes via middleware (`admin/src/middleware.ts`).
 - **Categories:** Hierarchical — sections (parent_id = null) contain subcategories. Listings link to categories via `listing_categories` junction table. Events use a simple `category` text field (no junction).
+- **Ads:** Three independent slots served via `GET /api/ads/serve?slot=X`. Round-robin rotation uses `last_served_at` (oldest served first). Each GoodBarber Custom Code Widget fetches its own slot. Impressions/clicks logged to `ad_events` table via fire-and-forget `sendBeacon`. Widget HTML files live in `/widgets/` and are copy-pasted into GoodBarber. Types shared between server and client components must go in `ad-types.ts` (not `ads.ts`) to avoid pulling `next/headers` into the client bundle.
