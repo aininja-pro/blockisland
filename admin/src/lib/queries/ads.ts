@@ -1,30 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+export type { Ad, AdSlot, AdStats, AdWithStats } from './ad-types'
+export { AD_SLOT_LABELS } from './ad-types'
 
-export interface Ad {
-  id: string
-  title: string
-  image_url: string
-  destination_url: string
-  is_active: boolean
-  start_date: string | null
-  end_date: string | null
-  last_served_at: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface AdStats {
-  ad_id: string
-  impressions: number
-  clicks: number
-  ctr: number
-}
-
-export interface AdWithStats extends Ad {
-  impressions: number
-  clicks: number
-  ctr: number
-}
+import type { Ad, AdStats, AdWithStats } from './ad-types'
 
 export async function getAds(): Promise<Ad[]> {
   const supabase = await createClient()

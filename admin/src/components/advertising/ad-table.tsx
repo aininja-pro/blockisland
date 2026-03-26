@@ -18,7 +18,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { AdWithStats } from '@/lib/queries/ads'
+import { type AdWithStats, AD_SLOT_LABELS, type AdSlot } from '@/lib/queries/ad-types'
+
+function formatLastServed(lastServedAt: string | null): string {
+  if (!lastServedAt) return 'Never'
+  const diff = Date.now() - new Date(lastServedAt).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
 
 interface AdTableProps {
   ads: AdWithStats[]
@@ -43,10 +55,12 @@ export function AdTable({ ads, onEdit, onDelete, onToggleActive }: AdTableProps)
           <TableRow>
             <TableHead className="w-20">Image</TableHead>
             <TableHead>Title</TableHead>
+            <TableHead className="w-28">Slot</TableHead>
             <TableHead className="w-24">Status</TableHead>
             <TableHead className="w-24 text-right">Impressions</TableHead>
             <TableHead className="w-20 text-right">Clicks</TableHead>
             <TableHead className="w-20 text-right">CTR</TableHead>
+            <TableHead className="w-28">Last Served</TableHead>
             <TableHead className="w-32">Schedule</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
@@ -63,6 +77,11 @@ export function AdTable({ ads, onEdit, onDelete, onToggleActive }: AdTableProps)
               </TableCell>
               <TableCell className="font-medium">{ad.title}</TableCell>
               <TableCell>
+                <Badge variant="outline">
+                  {AD_SLOT_LABELS[ad.slot as AdSlot] || ad.slot}
+                </Badge>
+              </TableCell>
+              <TableCell>
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={ad.is_active}
@@ -76,6 +95,9 @@ export function AdTable({ ads, onEdit, onDelete, onToggleActive }: AdTableProps)
               <TableCell className="text-right">{ad.impressions.toLocaleString()}</TableCell>
               <TableCell className="text-right">{ad.clicks.toLocaleString()}</TableCell>
               <TableCell className="text-right">{ad.ctr.toFixed(1)}%</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {formatLastServed(ad.last_served_at)}
+              </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {ad.start_date || ad.end_date ? (
                   <>

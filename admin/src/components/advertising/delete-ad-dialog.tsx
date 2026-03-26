@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Ad } from '@/lib/queries/ads'
+import { type Ad } from '@/lib/queries/ad-types'
 import { deleteAdAction } from '@/app/(protected)/advertising/actions'
 
 interface DeleteAdDialogProps {

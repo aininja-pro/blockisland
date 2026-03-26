@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { AdForm, AdFormData } from './ad-form'
-import { Ad } from '@/lib/queries/ads'
+import { type Ad } from '@/lib/queries/ad-types'
 import { createAdAction, updateAdAction } from '@/app/(protected)/advertising/actions'
 
 interface AdDialogProps {
@@ -27,6 +27,7 @@ export function AdDialog({ open, onClose, ad }: AdDialogProps) {
     try {
       const actionData = {
         title: data.title,
+        slot: data.slot,
         image_url: data.image_url,
         destination_url: data.destination_url,
         is_active: data.is_active,

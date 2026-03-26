@@ -1,7 +1,9 @@
 import { getAdsWithStats } from '@/lib/queries/ads'
 import { AdvertisingClient } from './client'
+import { deactivateExpiredAdsAction } from './actions'
 
 export default async function AdvertisingPage() {
+  await deactivateExpiredAdsAction()
   const ads = await getAdsWithStats()
 
   return (

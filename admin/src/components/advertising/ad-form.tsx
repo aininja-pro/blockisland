@@ -15,11 +15,19 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Loader2, Upload } from 'lucide-react'
-import { Ad } from '@/lib/queries/ads'
+import { type Ad, AD_SLOT_LABELS, type AdSlot } from '@/lib/queries/ad-types'
 
 const adSchema = z.object({
   title: z.string().min(1, 'Title is required'),
+  slot: z.enum(['top_banner', 'middle_block', 'bottom_block']),
   image_url: z.string().url('Must be a valid URL').min(1, 'Image is required'),
   destination_url: z.string().url('Must be a valid URL').min(1, 'Destination URL is required'),
   is_active: z.boolean(),
@@ -38,11 +46,13 @@ interface AdFormProps {
 
 export function AdForm({ ad, onSubmit, onCancel, isLoading }: AdFormProps) {
   const [uploading, setUploading] = useState(false)
+  const [runAlways, setRunAlways] = useState(!ad?.start_date && !ad?.end_date)
 
   const form = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
       title: ad?.title || '',
+      slot: ad?.slot || 'middle_block',
       image_url: ad?.image_url || '',
       destination_url: ad?.destination_url || '',
       is_active: ad?.is_active ?? true,
@@ -52,6 +62,7 @@ export function AdForm({ ad, onSubmit, onCancel, isLoading }: AdFormProps) {
   })
 
   const imageUrl = form.watch('image_url')
+  const selectedSlot = form.watch('slot')
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -99,6 +110,31 @@ export function AdForm({ ad, onSubmit, onCancel, isLoading }: AdFormProps) {
 
         <FormField
           control={form.control}
+          name="slot"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slot</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a slot" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {(Object.entries(AD_SLOT_LABELS) as [AdSlot, string][]).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="image_url"
           render={({ field }) => (
             <FormItem>
@@ -135,6 +171,11 @@ export function AdForm({ ad, onSubmit, onCancel, isLoading }: AdFormProps) {
                       className="w-full max-h-40 object-cover rounded border"
                     />
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    {selectedSlot === 'top_banner'
+                      ? 'Recommended: 750 × 120 px (wide thin strip)'
+                      : 'Recommended: 750 × 360 px (wide rectangle)'}
+                  </p>
                 </div>
               </FormControl>
               <FormMessage />
@@ -156,34 +197,55 @@ export function AdForm({ ad, onSubmit, onCancel, isLoading }: AdFormProps) {
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="start_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Start Date (optional)</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="end_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>End Date (optional)</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Schedule</p>
+              <p className="text-sm text-muted-foreground">
+                {runAlways ? 'Runs indefinitely while active' : 'Runs between specific dates'}
+              </p>
+            </div>
+            <Switch
+              checked={runAlways}
+              onCheckedChange={(checked) => {
+                setRunAlways(checked)
+                if (checked) {
+                  form.setValue('start_date', '')
+                  form.setValue('end_date', '')
+                }
+              }}
+            />
+          </div>
+          {!runAlways && (
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="end_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
         </div>
 
         <FormField

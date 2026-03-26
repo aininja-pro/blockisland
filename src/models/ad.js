@@ -3,19 +3,26 @@ const { supabase } = require('../db/supabase');
 /**
  * Get the next active ad using round-robin rotation.
  * Picks the ad with the oldest last_served_at (nulls first),
- * filtered by is_active and optional date schedule.
+ * filtered by is_active, slot, and optional date schedule.
  * Updates last_served_at on the selected ad.
+ * @param {string} [slot] - Optional slot filter (top_banner, middle_block, bottom_block)
  * @returns {Promise<Object|null>} Ad object or null if none active
  */
-async function getNextActiveAd() {
+async function getNextActiveAd(slot) {
   const now = new Date().toISOString();
   const today = now.split('T')[0]; // YYYY-MM-DD
 
   // Find the next ad to serve: active, within schedule, oldest last_served_at
-  const { data, error } = await supabase
+  let query = supabase
     .from('ads')
     .select('*')
-    .eq('is_active', true)
+    .eq('is_active', true);
+
+  if (slot) {
+    query = query.eq('slot', slot);
+  }
+
+  const { data, error } = await query
     .or(`start_date.is.null,start_date.lte.${today}`)
     .or(`end_date.is.null,end_date.gte.${today}`)
     .order('last_served_at', { ascending: true, nullsFirst: true })

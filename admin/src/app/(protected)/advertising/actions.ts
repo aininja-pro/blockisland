@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 
 interface AdFormData {
   title: string
+  slot: string
   image_url: string
   destination_url: string
   is_active: boolean
@@ -19,6 +20,7 @@ export async function createAdAction(data: AdFormData) {
     .from('ads')
     .insert({
       title: data.title,
+      slot: data.slot,
       image_url: data.image_url,
       destination_url: data.destination_url,
       is_active: data.is_active,
@@ -42,6 +44,7 @@ export async function updateAdAction(id: string, data: AdFormData) {
     .from('ads')
     .update({
       title: data.title,
+      slot: data.slot,
       image_url: data.image_url,
       destination_url: data.destination_url,
       is_active: data.is_active,
@@ -72,6 +75,18 @@ export async function deleteAdAction(id: string) {
 
   revalidatePath('/advertising')
   return { success: true }
+}
+
+export async function deactivateExpiredAdsAction() {
+  const supabase = await createClient()
+  const today = new Date().toISOString().split('T')[0]
+
+  await supabase
+    .from('ads')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('is_active', true)
+    .not('end_date', 'is', null)
+    .lt('end_date', today)
 }
 
 export async function toggleAdActiveAction(id: string, isActive: boolean) {
