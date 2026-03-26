@@ -114,7 +114,7 @@ export async function cloneEventAction(id: string) {
     .from('events')
     .insert({
       ...rest,
-      title: 'Copy of ' + original.title,
+      title: original.title + ' (Copy)',
       is_published: false,
     })
 
