@@ -1,10 +1,22 @@
-import { getSectionStats } from '@/lib/queries/categories'
+import { getSectionStats, getSubcategoryStats, type SubcategoryStats } from '@/lib/queries/categories'
 import { SectionsTable } from '@/components/categories/sections-table'
 import { AddSectionButton } from './add-section-button'
 import { Folder } from 'lucide-react'
 
 export default async function CategoriesPage() {
-  const sections = await getSectionStats()
+  const [sections, subcategories] = await Promise.all([
+    getSectionStats(),
+    getSubcategoryStats(),
+  ])
+
+  // Group subcategories by parent section
+  const subcategoriesBySection: Record<string, SubcategoryStats[]> = {}
+  for (const sub of subcategories) {
+    if (!subcategoriesBySection[sub.parentId]) {
+      subcategoriesBySection[sub.parentId] = []
+    }
+    subcategoriesBySection[sub.parentId].push(sub)
+  }
 
   if (sections.length === 0) {
     return (
@@ -48,7 +60,7 @@ export default async function CategoriesPage() {
         <AddSectionButton />
       </div>
 
-      <SectionsTable sections={sections} />
+      <SectionsTable sections={sections} subcategoriesBySection={subcategoriesBySection} />
     </div>
   )
 }

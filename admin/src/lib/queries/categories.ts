@@ -54,6 +54,61 @@ export async function getCategoryStats(): Promise<CategoryStats[]> {
     .sort((a, b) => a.category.localeCompare(b.category))
 }
 
+// Subcategory stats with listing counts
+export interface SubcategoryStats {
+  id: string
+  name: string
+  parentId: string
+  totalCount: number
+  premiumCount: number
+}
+
+export async function getSubcategoryStats(): Promise<SubcategoryStats[]> {
+  const supabase = await createClient()
+
+  // Get all subcategories (parent_id IS NOT NULL)
+  const { data: subcategories, error: subError } = await supabase
+    .from('categories')
+    .select('id, name, parent_id')
+    .not('parent_id', 'is', null)
+    .order('name')
+
+  if (subError) {
+    console.error('Error fetching subcategories:', subError)
+    throw subError
+  }
+
+  // Get listing counts per category
+  const { data: listingCategories, error: lcError } = await supabase
+    .from('listing_categories')
+    .select('category_id, listings(is_premium)')
+
+  if (lcError) {
+    console.error('Error fetching listing categories:', lcError)
+    throw lcError
+  }
+
+  // Count listings per subcategory
+  const categoryCounts: Record<string, { total: number; premium: number }> = {}
+  for (const lc of listingCategories || []) {
+    if (!categoryCounts[lc.category_id]) {
+      categoryCounts[lc.category_id] = { total: 0, premium: 0 }
+    }
+    categoryCounts[lc.category_id].total++
+    if ((lc.listings as any)?.is_premium) {
+      categoryCounts[lc.category_id].premium++
+    }
+  }
+
+  return (subcategories || []).map(sub => ({
+    id: sub.id,
+    name: sub.name,
+    parentId: sub.parent_id,
+    totalCount: categoryCounts[sub.id]?.total || 0,
+    premiumCount: categoryCounts[sub.id]?.premium || 0,
+  }))
+}
+
 // Section stats from the new categories hierarchy
 export interface SectionStats {
   id: string
@@ -163,8 +218,10 @@ export async function getCategoriesHierarchy(): Promise<CategoryWithChildren[]> 
   const allCategories = await getAllCategories()
 
   // Get sections (parent_id = null), sorted alphabetically
+  // Exclude unused sections that are not in GoodBarber
+  const hiddenSections = ['Inns', 'B&Bs / Guest Houses']
   const sections = allCategories
-    .filter(c => c.parent_id === null)
+    .filter(c => c.parent_id === null && !hiddenSections.includes(c.name))
     .sort((a, b) => a.name.localeCompare(b.name))
 
   // Attach children to each section
