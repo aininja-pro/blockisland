@@ -10,16 +10,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { AdForm, AdFormData } from './ad-form'
-import { type Ad } from '@/lib/queries/ad-types'
+import { type Ad, type AdSlot } from '@/lib/queries/ad-types'
 import { createAdAction, updateAdAction } from '@/app/(protected)/advertising/actions'
 
 interface AdDialogProps {
   open: boolean
   onClose: (refresh?: boolean) => void
   ad: Ad | null
+  defaultSlot?: AdSlot
 }
 
-export function AdDialog({ open, onClose, ad }: AdDialogProps) {
+export function AdDialog({ open, onClose, ad, defaultSlot }: AdDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (data: AdFormData) => {
@@ -77,6 +78,7 @@ export function AdDialog({ open, onClose, ad }: AdDialogProps) {
         </DialogHeader>
         <AdForm
           ad={ad}
+          defaultSlot={defaultSlot}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           isLoading={isLoading}

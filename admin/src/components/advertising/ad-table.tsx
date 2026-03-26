@@ -37,13 +37,14 @@ interface AdTableProps {
   onEdit: (ad: AdWithStats) => void
   onDelete: (ad: AdWithStats) => void
   onToggleActive: (adId: string, isActive: boolean) => Promise<void>
+  hideSlotColumn?: boolean
 }
 
-export function AdTable({ ads, onEdit, onDelete, onToggleActive }: AdTableProps) {
+export function AdTable({ ads, onEdit, onDelete, onToggleActive, hideSlotColumn }: AdTableProps) {
   if (ads.length === 0) {
     return (
-      <div className="rounded-md border p-8 text-center text-muted-foreground">
-        No ads yet. Click "Add Ad" to create your first banner ad.
+      <div className="rounded-md border p-6 text-center text-sm text-muted-foreground">
+        No ads in this slot yet.
       </div>
     )
   }
@@ -55,7 +56,7 @@ export function AdTable({ ads, onEdit, onDelete, onToggleActive }: AdTableProps)
           <TableRow>
             <TableHead className="w-20">Image</TableHead>
             <TableHead>Title</TableHead>
-            <TableHead className="w-28">Slot</TableHead>
+            {!hideSlotColumn && <TableHead className="w-28">Slot</TableHead>}
             <TableHead className="w-24">Status</TableHead>
             <TableHead className="w-24 text-right">Impressions</TableHead>
             <TableHead className="w-20 text-right">Clicks</TableHead>
@@ -76,11 +77,13 @@ export function AdTable({ ads, onEdit, onDelete, onToggleActive }: AdTableProps)
                 />
               </TableCell>
               <TableCell className="font-medium">{ad.title}</TableCell>
-              <TableCell>
-                <Badge variant="outline">
-                  {AD_SLOT_LABELS[ad.slot as AdSlot] || ad.slot}
-                </Badge>
-              </TableCell>
+              {!hideSlotColumn && (
+                <TableCell>
+                  <Badge variant="outline">
+                    {AD_SLOT_LABELS[ad.slot as AdSlot] || ad.slot}
+                  </Badge>
+                </TableCell>
+              )}
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Switch

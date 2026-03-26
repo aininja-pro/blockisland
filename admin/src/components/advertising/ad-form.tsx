@@ -39,12 +39,13 @@ export type AdFormData = z.infer<typeof adSchema>
 
 interface AdFormProps {
   ad: Ad | null
+  defaultSlot?: AdSlot
   onSubmit: (data: AdFormData) => Promise<void>
   onCancel: () => void
   isLoading: boolean
 }
 
-export function AdForm({ ad, onSubmit, onCancel, isLoading }: AdFormProps) {
+export function AdForm({ ad, defaultSlot, onSubmit, onCancel, isLoading }: AdFormProps) {
   const [uploading, setUploading] = useState(false)
   const [runAlways, setRunAlways] = useState(!ad?.start_date && !ad?.end_date)
 
@@ -52,7 +53,7 @@ export function AdForm({ ad, onSubmit, onCancel, isLoading }: AdFormProps) {
     resolver: zodResolver(adSchema),
     defaultValues: {
       title: ad?.title || '',
-      slot: ad?.slot || 'middle_block',
+      slot: ad?.slot || defaultSlot || 'middle_block',
       image_url: ad?.image_url || '',
       destination_url: ad?.destination_url || '',
       is_active: ad?.is_active ?? true,
