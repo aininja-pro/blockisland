@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -268,8 +268,9 @@ export function SectionsTable({ sections: initialSections, subcategoriesBySectio
               const hasChildren = section.subcategoryCount > 0
 
               return (
-                <>{/* Section row */}
-                  <TableRow key={section.id} className={isExpanded ? 'bg-muted/20' : undefined}>
+                <React.Fragment key={section.id}>
+                  {/* Section row */}
+                  <TableRow className={isExpanded ? 'bg-muted/20' : undefined}>
                     <TableCell className="px-4">
                       <div className="flex items-center gap-2">
                         {hasChildren ? (
@@ -451,7 +452,7 @@ export function SectionsTable({ sections: initialSections, subcategoriesBySectio
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               )
             })}
           </TableBody>

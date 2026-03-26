@@ -34,6 +34,7 @@ export async function togglePremiumAction(listingId: string, isPremium: boolean)
       .update({
         is_premium: true,
         rotation_position: newPosition,
+        subscription_date: new Date().toISOString().split('T')[0],
       })
       .eq('id', listingId)
 

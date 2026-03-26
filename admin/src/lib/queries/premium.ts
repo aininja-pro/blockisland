@@ -20,7 +20,36 @@ export async function getPremiumListings(): Promise<Listing[]> {
     throw error
   }
 
-  return data || []
+  const listings = data || []
+
+  // Resolve category from junction table for listings with empty legacy category
+  const needsCategory = listings.filter(l => !l.category)
+  if (needsCategory.length > 0) {
+    const { data: junctions } = await supabase
+      .from('listing_categories')
+      .select('listing_id, categories(name, parent_id)')
+      .in('listing_id', needsCategory.map(l => l.id))
+
+    if (junctions) {
+      const categoryMap: Record<string, string> = {}
+      for (const j of junctions) {
+        const cat = j.categories as any
+        // Prefer section (parent_id = null) over subcategory
+        if (cat && cat.parent_id === null) {
+          categoryMap[j.listing_id] = cat.name
+        } else if (cat && !categoryMap[j.listing_id]) {
+          categoryMap[j.listing_id] = cat.name
+        }
+      }
+      for (const listing of listings) {
+        if (!listing.category && categoryMap[listing.id]) {
+          listing.category = categoryMap[listing.id]
+        }
+      }
+    }
+  }
+
+  return listings
 }
 
 export async function getPremiumByCategory(): Promise<PremiumByCategory[]> {
