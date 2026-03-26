@@ -111,7 +111,7 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 - Advertising tab scaffolded in admin
 
 **Completed (March 26, 2026) — 5 polish fixes from Rob call:**
-1. Clone/duplicate for events and listings — 3-dot menu "Duplicate" option, clones all fields + category assignments, strips `goodbarber_id` to avoid unique constraint violations, listings use `"Name (Copy)"` suffix to sort adjacent to original
+1. Clone/duplicate for events and listings — 3-dot menu "Duplicate" option, clones all fields + category assignments, strips `goodbarber_id` to avoid unique constraint violations, both listings and events use `"Name (Copy)"` suffix to sort adjacent to original
 2. Hide subscription date on non-premium listings — cell returns null when `is_premium` is false
 3. Auto-draft past events — `autoDraftPastEventsAction()` runs server-side on every events page load, sets `is_published = false` for events with `end_date < today`
 4. Category filter bug fixed — `DataTable` now reads `?category=` URL param via `useSearchParams` + lazy `useState` initializer to seed filter on mount (required `Suspense` boundary in listings page)
