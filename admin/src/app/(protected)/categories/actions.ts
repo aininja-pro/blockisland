@@ -34,3 +34,31 @@ export async function createSection(name: string) {
   revalidatePath('/categories')
   return data
 }
+
+export async function deleteSection(id: string) {
+  const supabase = await createClient()
+
+  // Delete subcategories first
+  const { error: subError } = await supabase
+    .from('categories')
+    .delete()
+    .eq('parent_id', id)
+
+  if (subError) {
+    console.error('Error deleting subcategories:', subError)
+    throw subError
+  }
+
+  // Delete the section itself
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting section:', error)
+    throw error
+  }
+
+  revalidatePath('/categories')
+}
