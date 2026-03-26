@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -65,8 +66,19 @@ export function DataTable<TData extends Listing, TValue>({
     category: false, // Hide legacy category column (used only for filtering)
   })
   const [rowSelection, setRowSelection] = React.useState({})
+  const searchParams = useSearchParams()
+  const categoryParam = searchParams.get('category')
   const [globalFilter, setGlobalFilter] = React.useState('')
-  const [selectedCategoryIds, setSelectedCategoryIds] = React.useState<Set<string>>(new Set())
+  const [selectedCategoryIds, setSelectedCategoryIds] = React.useState<Set<string>>(() => {
+    if (!categoryParam) return new Set()
+    const match = sectionCategories.find(
+      s => s.name.toLowerCase() === categoryParam.toLowerCase()
+    )
+    if (!match) return new Set()
+    const ids = new Set<string>([match.id])
+    for (const child of match.children || []) ids.add(child.id)
+    return ids
+  })
   const [expandedSections, setExpandedSections] = React.useState<Set<string>>(new Set())
 
   // Filter data based on selected categories
@@ -306,6 +318,20 @@ export function DataTable<TData extends Listing, TValue>({
               <SelectItem value="all">All Tiers</SelectItem>
               <SelectItem value="premium">Premium</SelectItem>
               <SelectItem value="basic">Basic</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={(table.getColumn('subscription_date')?.getFilterValue() as string) || 'all'}
+            onValueChange={(value) =>
+              table.getColumn('subscription_date')?.setFilterValue(value === 'all' ? undefined : value)
+            }
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="All Renewals" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Renewals</SelectItem>
+              <SelectItem value="due_soon">Due Soon</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -90,6 +90,55 @@ export async function updateListingAction(id: string, data: ListingFormData) {
   return { success: true }
 }
 
+export async function cloneListingAction(id: string) {
+  const supabase = await createClient()
+
+  const { data: original, error: fetchError } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !original) {
+    return { error: fetchError?.message || 'Listing not found' }
+  }
+
+  const { id: _id, created_at, updated_at, goodbarber_id, ...rest } = original
+
+  const { data: newListing, error } = await supabase
+    .from('listings')
+    .insert({
+      ...rest,
+      name: original.name + ' (Copy)',
+      is_published: false,
+      is_premium: false,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  // Copy category assignments
+  const { data: categoryLinks } = await supabase
+    .from('listing_categories')
+    .select('category_id')
+    .eq('listing_id', id)
+
+  if (categoryLinks && categoryLinks.length > 0) {
+    await supabase
+      .from('listing_categories')
+      .insert(categoryLinks.map(link => ({
+        listing_id: newListing.id,
+        category_id: link.category_id,
+      })))
+  }
+
+  revalidatePath('/listings')
+  return { success: true }
+}
+
 export async function deleteListingAction(id: string) {
   const supabase = await createClient()
 

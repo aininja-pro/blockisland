@@ -1,9 +1,11 @@
 import { getEvents } from '@/lib/queries/events'
 import { EventsClient } from './client'
+import { autoDraftPastEventsAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function EventsPage() {
+  await autoDraftPastEventsAction()
   const events = await getEvents()
 
   return (

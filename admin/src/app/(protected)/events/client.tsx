@@ -10,7 +10,7 @@ import { getColumns } from '@/components/events/columns'
 import { Event } from '@/lib/queries/events'
 import { EventDialog } from '@/components/events/event-dialog'
 import { DeleteDialog } from '@/components/events/delete-dialog'
-import { toggleEventPublishedAction } from '@/app/(protected)/events/actions'
+import { toggleEventPublishedAction, cloneEventAction } from '@/app/(protected)/events/actions'
 
 interface EventsClientProps {
   events: Event[]
@@ -39,6 +39,16 @@ export function EventsClient({ events }: EventsClientProps) {
 
   const handleBulkDelete = (events: Event[]) => {
     setBulkDeleteEvents(events)
+  }
+
+  const handleClone = async (event: Event) => {
+    const result = await cloneEventAction(event.id)
+    if ('error' in result) {
+      toast.error(result.error)
+    } else {
+      toast.success('Event duplicated')
+      router.refresh()
+    }
   }
 
   const handleTogglePublished = async (eventId: string, isPublished: boolean) => {
@@ -70,6 +80,7 @@ export function EventsClient({ events }: EventsClientProps) {
   const columns = getColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
+    onClone: handleClone,
     onTogglePublished: handleTogglePublished,
   })
 

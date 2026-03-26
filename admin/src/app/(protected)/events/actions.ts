@@ -95,6 +95,48 @@ export async function deleteEventsAction(ids: string[]) {
   return { success: true }
 }
 
+export async function cloneEventAction(id: string) {
+  const supabase = await createClient()
+
+  const { data: original, error: fetchError } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !original) {
+    return { error: fetchError?.message || 'Event not found' }
+  }
+
+  const { id: _id, created_at, updated_at, goodbarber_id, ...rest } = original
+
+  const { error } = await supabase
+    .from('events')
+    .insert({
+      ...rest,
+      title: 'Copy of ' + original.title,
+      is_published: false,
+    })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/events')
+  return { success: true }
+}
+
+export async function autoDraftPastEventsAction() {
+  const supabase = await createClient()
+  const today = new Date().toISOString().split('T')[0]
+
+  await supabase
+    .from('events')
+    .update({ is_published: false })
+    .eq('is_published', true)
+    .lt('end_date', today)
+}
+
 export async function toggleEventPublishedAction(id: string, isPublished: boolean) {
   const supabase = await createClient()
 

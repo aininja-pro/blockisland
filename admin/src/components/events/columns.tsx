@@ -1,7 +1,7 @@
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, MoreHorizontal, Pencil, Trash2, ImageIcon } from 'lucide-react'
+import { ArrowUpDown, MoreHorizontal, Pencil, Trash2, ImageIcon, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -17,6 +17,7 @@ import { Event } from '@/lib/queries/events'
 interface ColumnsProps {
   onEdit: (event: Event) => void
   onDelete: (event: Event) => void
+  onClone: (event: Event) => void
   onTogglePublished: (eventId: string, isPublished: boolean) => Promise<void>
 }
 
@@ -51,7 +52,7 @@ function formatEventDate(startDate: string, endDate: string | null, allDay: bool
   return `${startDateStr}, ${startTimeStr}`
 }
 
-export function getColumns({ onEdit, onDelete, onTogglePublished }: ColumnsProps): ColumnDef<Event>[] {
+export function getColumns({ onEdit, onDelete, onClone, onTogglePublished }: ColumnsProps): ColumnDef<Event>[] {
   return [
     {
       id: 'select',
@@ -187,6 +188,10 @@ export function getColumns({ onEdit, onDelete, onTogglePublished }: ColumnsProps
               <DropdownMenuItem onClick={() => onEdit(event)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onClone(event)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

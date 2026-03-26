@@ -12,7 +12,7 @@ import { CategoryWithChildren } from '@/lib/queries/categories'
 import { ListingDialog } from '@/components/listings/listing-dialog'
 import { DeleteDialog } from '@/components/listings/delete-dialog'
 import { togglePremiumAction, togglePublishedAction } from '@/app/(protected)/premium/actions'
-import { updateSubscriptionDateAction } from '@/app/(protected)/listings/actions'
+import { updateSubscriptionDateAction, cloneListingAction } from '@/app/(protected)/listings/actions'
 
 interface ListingsClientProps {
   listings: Listing[]
@@ -47,6 +47,16 @@ export function ListingsClient({ listings, filterCategories, categories, listing
 
   const handleBulkDelete = (listings: Listing[]) => {
     setBulkDeleteListings(listings)
+  }
+
+  const handleClone = async (listing: Listing) => {
+    const result = await cloneListingAction(listing.id)
+    if ('error' in result) {
+      toast.error(result.error)
+    } else {
+      toast.success('Listing duplicated')
+      router.refresh()
+    }
   }
 
   const handleTogglePremium = async (listingId: string, isPremium: boolean) => {
@@ -98,6 +108,7 @@ export function ListingsClient({ listings, filterCategories, categories, listing
   const columns = getColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
+    onClone: handleClone,
     onTogglePremium: handleTogglePremium,
     onTogglePublished: handleTogglePublished,
     onSubscriptionDateChange: handleSubscriptionDateChange,

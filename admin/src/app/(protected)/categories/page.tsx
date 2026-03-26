@@ -48,16 +48,28 @@ export default async function CategoriesPage() {
         <AddSectionButton />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {sections.map((section) => (
-          <SectionCard
-            key={section.id}
-            name={section.name}
-            totalCount={section.totalCount}
-            premiumCount={section.premiumCount}
-            subcategoryCount={section.subcategoryCount}
-          />
-        ))}
+      <div className="rounded-md border overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-muted/40">
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide py-2 px-4">Section</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide py-2 px-4 w-[80px]">Listings</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide py-2 px-4 w-[100px]">Premium</th>
+              <th className="w-[110px] py-2 px-4"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {sections.map((section) => (
+              <SectionCard
+                key={section.id}
+                name={section.name}
+                totalCount={section.totalCount}
+                premiumCount={section.premiumCount}
+                subcategoryCount={section.subcategoryCount}
+              />
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

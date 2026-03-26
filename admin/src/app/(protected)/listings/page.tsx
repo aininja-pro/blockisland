@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { getListings, getCategories } from '@/lib/queries/listings'
 import { getCategoriesHierarchy, getAllListingCategoryIds } from '@/lib/queries/categories'
 import { ListingsClient } from './client'
@@ -25,12 +26,14 @@ export default async function ListingsPage() {
         </div>
       </div>
 
-      <ListingsClient
-        listings={listings}
-        filterCategories={filterCategories}
-        categories={categories}
-        listingCategoryIds={listingCategoryIds}
-      />
+      <Suspense>
+        <ListingsClient
+          listings={listings}
+          filterCategories={filterCategories}
+          categories={categories}
+          listingCategoryIds={listingCategoryIds}
+        />
+      </Suspense>
     </div>
   )
 }

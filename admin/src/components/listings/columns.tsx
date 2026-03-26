@@ -1,7 +1,7 @@
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, MoreHorizontal, Pencil, Trash2, MapPin, ImageIcon } from 'lucide-react'
+import { ArrowUpDown, MoreHorizontal, Pencil, Trash2, MapPin, ImageIcon, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -18,6 +18,7 @@ import { PremiumToggle } from '@/components/premium/premium-toggle'
 interface ColumnsProps {
   onEdit: (listing: Listing) => void
   onDelete: (listing: Listing) => void
+  onClone: (listing: Listing) => void
   onTogglePremium: (listingId: string, isPremium: boolean) => Promise<void>
   onTogglePublished: (listingId: string, isPublished: boolean) => Promise<void>
   onSubscriptionDateChange: (listingId: string, date: string | null) => Promise<void>
@@ -67,7 +68,7 @@ function getAppearsIn(
   return appearances
 }
 
-export function getColumns({ onEdit, onDelete, onTogglePremium, onTogglePublished, onSubscriptionDateChange, categories, listingCategoryIds }: ColumnsProps): ColumnDef<Listing>[] {
+export function getColumns({ onEdit, onDelete, onClone, onTogglePremium, onTogglePublished, onSubscriptionDateChange, categories, listingCategoryIds }: ColumnsProps): ColumnDef<Listing>[] {
   const categoryLookup = buildCategoryLookup(categories)
 
   return [
@@ -233,17 +234,60 @@ export function getColumns({ onEdit, onDelete, onTogglePremium, onTogglePublishe
       header: 'Subscription',
       cell: ({ row }) => {
         const listing = row.original
+        if (!listing.is_premium) return null
+        const subscriptionDate = listing.subscription_date
+        let badge: React.ReactNode = null
+
+        if (subscriptionDate) {
+          const renewalDate = new Date(subscriptionDate)
+          renewalDate.setFullYear(renewalDate.getFullYear() + 1)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          const diffMs = renewalDate.getTime() - today.getTime()
+          const daysUntilRenewal = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+          if (daysUntilRenewal <= 0) {
+            badge = (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                Expired
+              </span>
+            )
+          } else if (daysUntilRenewal <= 30) {
+            badge = (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                {daysUntilRenewal}d
+              </span>
+            )
+          }
+        }
+
         return (
-          <input
-            type="date"
-            defaultValue={listing.subscription_date || ''}
-            onChange={(e) => {
-              const value = e.target.value || null
-              onSubscriptionDateChange(listing.id, value)
-            }}
-            className="text-sm border rounded px-2 py-1 w-[140px] bg-transparent"
-          />
+          <div className="flex items-center gap-1.5">
+            <input
+              type="date"
+              defaultValue={subscriptionDate || ''}
+              onChange={(e) => {
+                const value = e.target.value || null
+                onSubscriptionDateChange(listing.id, value)
+              }}
+              className="text-sm border rounded px-2 py-1 w-[140px] bg-transparent"
+            />
+            {badge}
+          </div>
         )
+      },
+      filterFn: (row, id, value) => {
+        if (value === 'all') return true
+        const subDate = row.getValue(id) as string | null
+        if (!subDate) return false
+        const renewalDate = new Date(subDate)
+        renewalDate.setFullYear(renewalDate.getFullYear() + 1)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const diffMs = renewalDate.getTime() - today.getTime()
+        const daysUntilRenewal = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        if (value === 'due_soon') return daysUntilRenewal <= 30
+        return true
       },
     },
     // Hidden column for filtering by legacy category
@@ -273,6 +317,10 @@ export function getColumns({ onEdit, onDelete, onTogglePremium, onTogglePublishe
               <DropdownMenuItem onClick={() => onEdit(listing)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onClone(listing)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicate
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
