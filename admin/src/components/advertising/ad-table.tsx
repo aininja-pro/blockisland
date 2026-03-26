@@ -1,6 +1,6 @@
 'use client'
 
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Copy, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -37,10 +37,11 @@ interface AdTableProps {
   onEdit: (ad: AdWithStats) => void
   onDelete: (ad: AdWithStats) => void
   onToggleActive: (adId: string, isActive: boolean) => Promise<void>
+  onDuplicate: (ad: AdWithStats) => void
   hideSlotColumn?: boolean
 }
 
-export function AdTable({ ads, onEdit, onDelete, onToggleActive, hideSlotColumn }: AdTableProps) {
+export function AdTable({ ads, onEdit, onDelete, onToggleActive, onDuplicate, hideSlotColumn }: AdTableProps) {
   if (ads.length === 0) {
     return (
       <div className="rounded-md border p-6 text-center text-sm text-muted-foreground">
@@ -121,6 +122,10 @@ export function AdTable({ ads, onEdit, onDelete, onToggleActive, hideSlotColumn 
                     <DropdownMenuItem onClick={() => onEdit(ad)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDuplicate(ad)}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Duplicate
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDelete(ad)}

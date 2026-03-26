@@ -16,7 +16,7 @@ import { type AdWithStats, AD_SLOT_LABELS, type AdSlot } from '@/lib/queries/ad-
 import { AdTable } from '@/components/advertising/ad-table'
 import { AdDialog } from '@/components/advertising/ad-dialog'
 import { DeleteAdDialog } from '@/components/advertising/delete-ad-dialog'
-import { toggleAdActiveAction } from './actions'
+import { duplicateAdAction, toggleAdActiveAction } from './actions'
 
 const SLOT_DESCRIPTIONS: Record<AdSlot, string> = {
   top_banner: 'Thin strip above all category tiles — 750 x 120 px',
@@ -62,6 +62,16 @@ export function AdvertisingClient({ ads }: AdvertisingClientProps) {
     router.refresh()
   }
 
+  const handleDuplicate = async (ad: AdWithStats) => {
+    const result = await duplicateAdAction(ad.id)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Ad duplicated')
+    router.refresh()
+  }
+
   const handleDialogClose = (refresh?: boolean) => {
     setDialogOpen(false)
     setEditAd(null)
@@ -100,6 +110,7 @@ export function AdvertisingClient({ ads }: AdvertisingClientProps) {
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onToggleActive={handleToggleActive}
+                  onDuplicate={handleDuplicate}
                   hideSlotColumn
                 />
               </CardContent>

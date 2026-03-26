@@ -77,6 +77,39 @@ export async function deleteAdAction(id: string) {
   return { success: true }
 }
 
+export async function duplicateAdAction(id: string) {
+  const supabase = await createClient()
+
+  const { data: original, error: fetchError } = await supabase
+    .from('ads')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !original) {
+    console.error('Error fetching ad to duplicate:', fetchError)
+    return { error: fetchError?.message || 'Ad not found' }
+  }
+
+  const { error } = await supabase.from('ads').insert({
+    title: `${original.title} (Copy)`,
+    slot: original.slot,
+    image_url: original.image_url,
+    destination_url: original.destination_url,
+    is_active: false,
+    start_date: original.start_date,
+    end_date: original.end_date,
+  })
+
+  if (error) {
+    console.error('Error duplicating ad:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/advertising')
+  return { success: true }
+}
+
 export async function deactivateExpiredAdsAction() {
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]

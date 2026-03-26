@@ -9,6 +9,7 @@ export async function getAds(): Promise<Ad[]> {
   const { data, error } = await supabase
     .from('ads')
     .select('*')
+    .order('is_active', { ascending: false })
     .order('created_at', { ascending: false })
 
   if (error) {
