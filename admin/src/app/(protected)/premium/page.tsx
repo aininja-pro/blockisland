@@ -1,10 +1,10 @@
-import { getPremiumListings, getLastRotationDate } from '@/lib/queries/premium'
+import { getPremiumGroupedBySection, getLastRotationDate } from '@/lib/queries/premium'
 import { getCategories } from '@/lib/queries/listings'
 import { PremiumClient } from './client'
 
 export default async function PremiumPage() {
-  const [premiumListings, lastRotation, allCategories] = await Promise.all([
-    getPremiumListings(),
+  const [premiumGroups, lastRotation, allCategories] = await Promise.all([
+    getPremiumGroupedBySection(),
     getLastRotationDate(),
     getCategories(),
   ])
@@ -29,7 +29,7 @@ export default async function PremiumPage() {
       </div>
 
       <PremiumClient
-        premiumListings={premiumListings}
+        premiumGroups={premiumGroups}
         allCategories={allCategories}
       />
     </div>

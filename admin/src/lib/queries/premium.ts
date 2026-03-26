@@ -6,6 +6,73 @@ export interface PremiumByCategory {
   listings: Listing[]
 }
 
+export interface PremiumGrouped {
+  section: string
+  listings: Listing[]
+}
+
+export async function getPremiumGroupedBySection(): Promise<PremiumGrouped[]> {
+  const supabase = await createClient()
+
+  // Get all premium listings
+  const { data: listings, error } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('is_premium', true)
+    .order('rotation_position', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching premium listings:', error)
+    throw error
+  }
+
+  if (!listings || listings.length === 0) return []
+
+  // Get all section assignments from junction table (sections only, parent_id = null)
+  const { data: junctions } = await supabase
+    .from('listing_categories')
+    .select('listing_id, categories(name, parent_id)')
+    .in('listing_id', listings.map(l => l.id))
+
+  // Build listing_id -> section names mapping
+  const listingSections: Record<string, string[]> = {}
+  if (junctions) {
+    for (const j of junctions) {
+      const cat = j.categories as any
+      if (cat && cat.parent_id === null) {
+        if (!listingSections[j.listing_id]) listingSections[j.listing_id] = []
+        if (!listingSections[j.listing_id].includes(cat.name)) {
+          listingSections[j.listing_id].push(cat.name)
+        }
+      }
+    }
+  }
+
+  // Fallback to legacy category column for listings without junction entries
+  for (const listing of listings) {
+    if (!listingSections[listing.id] && listing.category) {
+      listingSections[listing.id] = [listing.category]
+    }
+  }
+
+  // Group: a listing appears in each section it belongs to
+  const grouped: Record<string, Listing[]> = {}
+  for (const listing of listings) {
+    const sections = listingSections[listing.id] || ['Uncategorized']
+    for (const section of sections) {
+      if (!grouped[section]) grouped[section] = []
+      grouped[section].push(listing)
+    }
+  }
+
+  return Object.entries(grouped)
+    .map(([section, sectionListings]) => ({
+      section,
+      listings: sectionListings.sort((a, b) => (a.rotation_position || 0) - (b.rotation_position || 0)),
+    }))
+    .sort((a, b) => a.section.localeCompare(b.section))
+}
+
 export async function getPremiumListings(): Promise<Listing[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

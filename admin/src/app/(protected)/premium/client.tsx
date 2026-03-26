@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { Star, ArrowUpDown, ArrowUp, ArrowDown, Plus } from 'lucide-react'
+import { Star, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -12,7 +12,6 @@ import {
   Table,
   TableHeader,
   TableBody,
-  TableFooter,
   TableHead,
   TableRow,
   TableCell,
@@ -27,58 +26,21 @@ import {
 import { PremiumToggle } from '@/components/premium/premium-toggle'
 import { AddPremiumDialog } from '@/components/premium/add-premium-dialog'
 import { togglePremiumAction } from './actions'
-import type { Listing } from '@/lib/queries/listings'
-
-type SortKey = 'category' | 'name' | 'rotation_position' | 'subscription_date'
-type SortDir = 'asc' | 'desc'
-
-function SortIcon({ column, sortKey, sortDir }: { column: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (sortKey !== column) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />
-  return sortDir === 'asc'
-    ? <ArrowUp className="h-3.5 w-3.5 ml-1" />
-    : <ArrowDown className="h-3.5 w-3.5 ml-1" />
-}
+import type { PremiumGrouped } from '@/lib/queries/premium'
 
 interface PremiumClientProps {
-  premiumListings: Listing[]
+  premiumGroups: PremiumGrouped[]
   allCategories: string[]
 }
 
 export function PremiumClient({
-  premiumListings,
+  premiumGroups,
   allCategories,
 }: PremiumClientProps) {
   const router = useRouter()
-  const [sortKey, setSortKey] = useState<SortKey>('category')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
-
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir(key === 'name' || key === 'category' ? 'asc' : 'asc')
-    }
-  }
-
-  const sorted = [...premiumListings].sort((a, b) => {
-    const mul = sortDir === 'asc' ? 1 : -1
-    switch (sortKey) {
-      case 'category':
-        return mul * a.category.localeCompare(b.category) || (a.rotation_position || 0) - (b.rotation_position || 0)
-      case 'name':
-        return mul * a.name.localeCompare(b.name)
-      case 'rotation_position':
-        return mul * ((a.rotation_position || 0) - (b.rotation_position || 0))
-      case 'subscription_date':
-        return mul * ((a.subscription_date || '').localeCompare(b.subscription_date || ''))
-      default:
-        return 0
-    }
-  })
 
   const handleToggle = async (listingId: string, isPremium: boolean) => {
     const result = await togglePremiumAction(listingId, isPremium)
@@ -113,7 +75,9 @@ export function PremiumClient({
     })
   }
 
-  if (premiumListings.length === 0) {
+  const totalListings = premiumGroups.reduce((sum, g) => sum + g.listings.length, 0)
+
+  if (premiumGroups.length === 0) {
     return (
       <div className="text-center py-12">
         <Star className="mx-auto h-12 w-12 text-slate-400" />
@@ -155,7 +119,6 @@ export function PremiumClient({
       <Card className="py-0 overflow-hidden">
         <Table>
           <colgroup>
-            <col className="w-[25%]" />
             <col />
             <col className="w-[100px]" />
             <col className="w-[160px]" />
@@ -163,80 +126,66 @@ export function PremiumClient({
           </colgroup>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
-              <TableHead className="px-4">
-                <button onClick={() => handleSort('category')} className="inline-flex items-center text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
-                  Category
-                  <SortIcon column="category" sortKey={sortKey} sortDir={sortDir} />
-                </button>
-              </TableHead>
-              <TableHead className="px-4">
-                <button onClick={() => handleSort('name')} className="inline-flex items-center text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
-                  Listing
-                  <SortIcon column="name" sortKey={sortKey} sortDir={sortDir} />
-                </button>
-              </TableHead>
-              <TableHead className="px-4">
-                <button onClick={() => handleSort('rotation_position')} className="inline-flex items-center text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors w-full justify-center">
-                  Position
-                  <SortIcon column="rotation_position" sortKey={sortKey} sortDir={sortDir} />
-                </button>
-              </TableHead>
-              <TableHead className="px-4">
-                <button onClick={() => handleSort('subscription_date')} className="inline-flex items-center text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
-                  Subscribed
-                  <SortIcon column="subscription_date" sortKey={sortKey} sortDir={sortDir} />
-                </button>
-              </TableHead>
+              <TableHead className="px-4 text-xs uppercase tracking-wider text-muted-foreground">Listing</TableHead>
+              <TableHead className="px-4 text-xs uppercase tracking-wider text-muted-foreground text-center">Position</TableHead>
+              <TableHead className="px-4 text-xs uppercase tracking-wider text-muted-foreground">Subscribed</TableHead>
               <TableHead className="px-4"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((listing) => (
-              <TableRow key={listing.id}>
-                <TableCell className="px-4 text-sm text-muted-foreground">
-                  {listing.category}
-                </TableCell>
-                <TableCell className="px-4">
-                  <span className="font-medium">{listing.name}</span>
-                </TableCell>
-                <TableCell className="px-4 text-center">
-                  {listing.rotation_position === 1 ? (
-                    <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs">
-                      <Star className="h-3 w-3 mr-1" />
-                      1
-                    </Badge>
-                  ) : (
-                    <span className="text-sm tabular-nums text-muted-foreground">
-                      {listing.rotation_position || '—'}
+            {premiumGroups.map((group) => (
+              <React.Fragment key={group.section}>
+                {/* Category group header */}
+                <TableRow className="bg-muted/20 hover:bg-muted/20">
+                  <TableCell className="px-4 py-2" colSpan={4}>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.section}
                     </span>
-                  )}
-                </TableCell>
-                <TableCell className="px-4 text-sm text-muted-foreground">
-                  {formatDate(listing.subscription_date)}
-                </TableCell>
-                <TableCell className="px-4">
-                  <PremiumToggle
-                    listingId={listing.id}
-                    isPremium={true}
-                    onToggle={handleToggle}
-                    compact
-                  />
-                </TableCell>
-              </TableRow>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({group.listings.length} {group.listings.length === 1 ? 'listing' : 'listings'})
+                    </span>
+                  </TableCell>
+                </TableRow>
+                {/* Listings in this category */}
+                {group.listings.map((listing) => (
+                  <TableRow key={`${group.section}-${listing.id}`}>
+                    <TableCell className="px-4 pl-8">
+                      <span className="font-medium">{listing.name}</span>
+                    </TableCell>
+                    <TableCell className="px-4 text-center">
+                      {listing.rotation_position === 1 ? (
+                        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs">
+                          <Star className="h-3 w-3 mr-1" />
+                          1
+                        </Badge>
+                      ) : (
+                        <span className="text-sm tabular-nums text-muted-foreground">
+                          {listing.rotation_position || '—'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 text-sm text-muted-foreground">
+                      {formatDate(listing.subscription_date)}
+                    </TableCell>
+                    <TableCell className="px-4">
+                      <PremiumToggle
+                        listingId={listing.id}
+                        isPremium={true}
+                        onToggle={handleToggle}
+                        compact
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </React.Fragment>
             ))}
           </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell className="px-4 font-medium" colSpan={2}>
-                {premiumListings.length} premium {premiumListings.length === 1 ? 'listing' : 'listings'}
-              </TableCell>
-              <TableCell />
-              <TableCell />
-              <TableCell />
-            </TableRow>
-          </TableFooter>
         </Table>
       </Card>
+
+      <p className="text-sm text-muted-foreground">
+        {totalListings} premium {totalListings === 1 ? 'listing' : 'listings'} across {premiumGroups.length} {premiumGroups.length === 1 ? 'category' : 'categories'}
+      </p>
 
       <AddPremiumDialog
         open={addDialogOpen}
@@ -246,3 +195,4 @@ export function PremiumClient({
     </>
   )
 }
+

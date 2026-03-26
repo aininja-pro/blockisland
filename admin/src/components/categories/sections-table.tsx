@@ -140,7 +140,7 @@ function AddSubcategoryInput({ sectionId, onDone }: { sectionId: string; onDone:
 
   return (
     <TableRow className="bg-muted/20">
-      <TableCell className="pl-10 pr-4">
+      <TableCell style={{ paddingLeft: '4.5rem' }} className="pr-4">
         <Input
           ref={inputRef}
           placeholder="Subcategory name..."
@@ -368,9 +368,8 @@ export function SectionsTable({ sections: initialSections, subcategoriesBySectio
                   {/* Subcategory rows */}
                   {isExpanded && subs.map((sub) => (
                     <TableRow key={sub.id} className="bg-muted/10">
-                      <TableCell className="pl-10 pr-4">
+                      <TableCell style={{ paddingLeft: '4.5rem' }} className="pr-4">
                         <div className="flex items-center gap-2">
-                          <span className="w-5" />
                           {editingId === sub.id ? (
                             <InlineEdit
                               value={sub.name}
@@ -441,7 +440,7 @@ export function SectionsTable({ sections: initialSections, subcategoriesBySectio
                   {/* Add subcategory button at bottom of expanded section */}
                   {isExpanded && addingSubTo !== section.id && (
                     <TableRow className="bg-muted/10 hover:bg-muted/20">
-                      <TableCell className="pl-10 pr-4 py-1.5" colSpan={4}>
+                      <TableCell style={{ paddingLeft: '4.5rem' }} className="pr-4 py-1.5" colSpan={4}>
                         <button
                           onClick={() => setAddingSubTo(section.id)}
                           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
