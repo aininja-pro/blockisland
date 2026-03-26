@@ -1,13 +1,167 @@
-# Claude Code Guidelines
+# CLAUDE.md
+# Block Island Community Directory App
 
-1. **Think through the problem first.** Read the codebase for relevant files before making changes.
+A GoodBarber-powered community directory for Block Island, RI — managed through a custom admin dashboard that controls listings, events, premium tiers, and advertising.
 
-2. **Check in before major changes.** Before making any major changes, verify the plan with the user.
+**Client:** Rob Lucier | **Phase:** Foundry (active build) | **Started:** January 2026
 
-3. **Explain changes at a high level.** Every step of the way, provide a high-level explanation of what changes were made.
+---
 
-4. **Keep it simple.** Make every task and code change as simple as possible. Avoid massive or complex changes. Every change should impact as little code as possible. Simplicity is paramount.
+## Tool Ladder Check
 
-5. **Maintain architecture documentation.** Keep a documentation file that describes how the architecture of the app works inside and out.
+This project runs at **Level 3 — VS Code + Claude Code**
 
-6. **Never speculate about unread code.** If the user references a specific file, read it before answering. Investigate and read relevant files BEFORE answering questions about the codebase. Never make claims about code before investigating unless certain of the correct answer. Provide grounded, hallucination-free answers.
+Full workspace access required. Next.js admin + Express API + Supabase schema all need to be touched.
+
+---
+
+## Tech Stack
+
+- **Admin Frontend:** Next.js 15 + React 18 + TypeScript + Tailwind CSS + shadcn/ui
+- **Feed API:** Node.js + Express (serves JSON feeds to GoodBarber)
+- **Database:** PostgreSQL via Supabase
+- **Auth:** Supabase Auth
+- **Deploy:** Render (`https://blockisland.onrender.com`)
+- **Repo:** https://github.com/aininja-pro/blockisland
+
+---
+
+## Repo Structure
+```
+/admin          → Next.js admin dashboard (staff-facing UI)
+  /src/app      → Pages and server actions
+  /src/components → UI components by domain
+  /src/lib      → Queries, Supabase client, utilities
+/src            → Express API (GoodBarber feed endpoints)
+  /api          → Route handlers (feed, events-feed, ads)
+  /models       → DB queries (listings, events)
+  /services     → Business logic (rotation)
+  /db           → Supabase client
+/docs           → Architecture, setup guides, GoodBarber integration notes
+/scripts        → One-off utility scripts
+```
+
+**Template mapping note:** `/docs` = template's `/planning` intent for architecture.
+No `/ops` folder yet — deploy runbooks live in `/docs` for now.
+
+---
+
+## Routing (What to read before touching what)
+
+| Task | Go to | Read first |
+|------|-------|------------|
+| Admin UI changes | `/admin/src/` | `docs/ARCHITECTURE.md` |
+| Feed/API changes | `/src/api/` | `docs/ARCHITECTURE.md` + `docs/GOODBARBER-SETUP.md` |
+| DB schema changes | Supabase dashboard + queries | `docs/ARCHITECTURE.md` |
+| GoodBarber integration | `/docs/GOODBARBER-FEED-URLS.md` | `docs/GOODBARBER-SETUP.md` |
+| Architecture decisions | `/docs/` | `docs/SYSTEM-OVERVIEW.md` |
+
+---
+
+## Commands
+
+| Action | Command |
+|--------|---------|
+| Admin dev server | `cd admin && npm run dev` |
+| Feed API dev server | `node src/index.js` |
+| Install admin deps | `cd admin && npm install` |
+| Install root deps | `npm install` |
+
+---
+
+## Working Mode
+
+**Current mode: Directed**
+
+Ray tells Claude Code exactly what to build, file by file. Follow instructions precisely. Do not add features, refactor patterns, or make "improvements" not specified in the blueprint. Ask before deviating.
+
+---
+
+## Conventions
+
+- Functional React components only. No class components.
+- Server components fetch data and pass to client components via props.
+- Mutations go through Next.js server actions (`actions.ts`) with `revalidatePath`.
+- No raw SQL in route handlers. Queries go through `/lib/queries/` (admin) or `/models/` (Express).
+- Forms use React Hook Form + Zod validation.
+- Tables use TanStack Table with sorting, filtering, pagination.
+- GoodBarber feeds must return valid JSON in GoodBarber's custom feed format — see `docs/GOODBARBER-SETUP.md` before touching feed endpoints.
+- Commits: conventional commits (`feat:`, `fix:`, `docs:`, `chore:`)
+
+---
+
+## Avoid
+
+- Do not speculate about code you haven't opened. Read the file first.
+- Do not hardcode environment variables. Use `.env.local` (admin) or `process.env` (Express).
+- Do not modify the GoodBarber feed JSON shape without checking `docs/GOODBARBER-SETUP.md` — breaking the feed breaks the live app.
+- Do not add npm dependencies without checking if an existing one covers the need.
+- Do not write code not specified in the blueprint without asking first.
+- Do not make large, sweeping changes. Every change should touch as little code as possible.
+
+---
+
+## Current State
+
+**Working:**
+- Admin dashboard fully functional: listings, events, categories, premium toggle, subscription date
+- GoodBarber custom feed integration tested and live (switchable per section)
+- Premium tier system: premium listings sort above basic, auto-rotation on configurable schedule
+- Ferries section fully integrated
+- Advertising tab scaffolded in admin
+
+**Completed (March 26, 2026) — 5 polish fixes from Rob call:**
+1. Clone/duplicate for events and listings — 3-dot menu "Duplicate" option, clones all fields + category assignments, strips `goodbarber_id` to avoid unique constraint violations, listings use `"Name (Copy)"` suffix to sort adjacent to original
+2. Hide subscription date on non-premium listings — cell returns null when `is_premium` is false
+3. Auto-draft past events — `autoDraftPastEventsAction()` runs server-side on every events page load, sets `is_published = false` for events with `end_date < today`
+4. Category filter bug fixed — `DataTable` now reads `?category=` URL param via `useSearchParams` + lazy `useState` initializer to seed filter on mount (required `Suspense` boundary in listings page)
+5. Sections page compact table — replaced card grid with HTML `<table>` layout
+
+**Completed (March 26, 2026) — Admin UI polish:**
+
+6. **Sections/Categories page redesign** — Full category management with shadcn Table in Card:
+   - Expandable rows: click chevron to show subcategories with per-subcategory listing/premium counts
+   - Inline rename: double-click any section or subcategory name to edit in-place
+   - Full CRUD: add/rename/delete sections and subcategories via 3-dot menu
+   - Sortable columns (Section, Listings, Premium), footer totals
+   - All category mutations use `createAdminClient()` (service role key) to bypass Supabase RLS
+   - Deleting a section/subcategory cleans up `listing_categories` junction rows first
+
+7. **Premium Members page redesign** — Replaced bubbly card grid with compact sortable table:
+   - Single flat table: Category, Listing, Position (yellow badge for #1), Subscription Date, Toggle
+   - Sortable by any column, "Add Premium Member" select dropdown to pick category then listing
+   - Fixed timezone bug: dates parsed with `T00:00:00` suffix to prevent UTC→local day shift
+   - Resolves category from `listing_categories` junction table when legacy `category` column is empty
+   - `togglePremiumAction` now auto-sets `subscription_date` when adding to premium
+
+**Not Started:**
+- Phase 2: Ad Management System (Custom Code Widget approach, home screen placements)
+
+**Known Issues:**
+- Events feed endpoint is stubbed — awaiting GoodBarber schema export
+- Some listings have empty legacy `category` text column — category resolved from junction table at query time
+
+---
+
+## Session Log
+
+| Date | What was built | What's next | Notes |
+|------|---------------|-------------|-------|
+| Jan 26, 2026 | Project kicked off. SOW signed. | Stand up repo + admin scaffold | Phase 1: $2,500 |
+| Feb 7, 2026 | Demo to Rob. Feed integration confirmed working. Ferries live. | 5 polish fixes + Phase 2 scoping | Rob happy with progress |
+| Mar 2026 | Architecture review. CLAUDE.md created. | Blueprint for 5 fixes → Claude Code | Process formalized |
+| Mar 26, 2026 | 5 polish fixes: clone, hide sub date, auto-draft, category filter, compact sections | Sections table UI polish + Phase 2 scoping | `goodbarber_id` unique constraint caught during testing; `useSearchParams` required Suspense boundary |
+| Mar 26, 2026 | Sections page: full category management with expandable subcategories, inline edit, CRUD. Premium page: compact sortable table replacing card grid. | Phase 2 scoping | RLS bypass needed for category mutations; timezone bug on date display; legacy `category` column empty for some listings |
+
+*Update this at the end of every session so the next session picks up with full context.*
+
+---
+
+## Architecture Notes
+
+- **Two servers:** Express (`/src`) serves GoodBarber feeds. Next.js (`/admin`) serves the admin UI. They share the same Supabase instance.
+- **Feed pattern:** GoodBarber pulls from `https://blockisland.onrender.com/api/feed/maps?section=X`. Switching a section's source in GoodBarber from internal CMS to the custom URL is non-destructive and reversible.
+- **Premium sort:** Listings are returned pre-sorted by the feed endpoint — premium first, then basic. Rotation happens server-side on a schedule.
+- **Fragile:** The GoodBarber feed JSON shape is rigid. The `isFeatured` field controls hero image display. Synthetic dates control sort order. Any change to feed output needs to be tested in the app before going live.
+- **Auth:** Supabase Auth protects all admin routes via middleware (`admin/src/middleware.ts`).
+- **Categories:** Hierarchical — sections (parent_id = null) contain subcategories. Listings link to categories via `listing_categories` junction table. Events use a simple `category` text field (no junction).
