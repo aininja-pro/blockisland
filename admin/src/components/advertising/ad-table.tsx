@@ -1,6 +1,6 @@
 'use client'
 
-import { Copy, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Copy, ExternalLink, Link, MoreHorizontal, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -77,7 +77,23 @@ export function AdTable({ ads, onEdit, onDelete, onToggleActive, onDuplicate, hi
                   className="h-10 w-16 object-cover rounded"
                 />
               </TableCell>
-              <TableCell className="font-medium">{ad.title}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{ad.title}</span>
+                  {ad.link_type === 'internal' ? (
+                    ad.linked_listing_id ? (
+                      <Link className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs text-amber-600">
+                        <AlertTriangle className="h-3 w-3" />
+                        Deleted
+                      </span>
+                    )
+                  ) : (
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
+                </div>
+              </TableCell>
               {!hideSlotColumn && (
                 <TableCell>
                   <Badge variant="outline">

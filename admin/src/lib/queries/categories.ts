@@ -196,6 +196,31 @@ export async function getSectionStats(): Promise<SectionStats[]> {
   }))
 }
 
+// Get sections that have a PWA slug (for internal ad links)
+export interface SectionWithSlug {
+  id: string
+  name: string
+  pwa_slug: string
+}
+
+export async function getSectionsWithSlug(): Promise<SectionWithSlug[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id, name, pwa_slug')
+    .is('parent_id', null)
+    .not('pwa_slug', 'is', null)
+    .order('name')
+
+  if (error) {
+    console.error('Error fetching sections with slug:', error)
+    return []
+  }
+
+  return (data || []) as SectionWithSlug[]
+}
+
 // Get all categories (flat list)
 export async function getAllCategories(): Promise<Category[]> {
   const supabase = await createClient()

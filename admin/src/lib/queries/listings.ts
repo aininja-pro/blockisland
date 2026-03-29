@@ -154,6 +154,45 @@ export async function togglePublished(id: string, isPublished: boolean): Promise
   return data
 }
 
+export async function getPublishedListingsBySection(sectionId: string): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient()
+
+  // Get all category IDs for this section (the section itself + its subcategories)
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id')
+    .or(`id.eq.${sectionId},parent_id.eq.${sectionId}`)
+
+  if (!categories || categories.length === 0) return []
+
+  const categoryIds = categories.map(c => c.id)
+
+  // Get published listings in those categories via junction table
+  const { data, error } = await supabase
+    .from('listing_categories')
+    .select('listing_id, listings!inner(id, name, is_published)')
+    .in('category_id', categoryIds)
+    .eq('listings.is_published', true)
+
+  if (error) {
+    console.error('Error fetching listings by section:', error)
+    return []
+  }
+
+  // Deduplicate (a listing may appear in multiple subcategories)
+  const seen = new Set<string>()
+  const results: { id: string; name: string }[] = []
+  for (const row of data || []) {
+    const listing = row.listings as unknown as { id: string; name: string; is_published: boolean }
+    if (!seen.has(listing.id)) {
+      seen.add(listing.id)
+      results.push({ id: listing.id, name: listing.name })
+    }
+  }
+
+  return results.sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export async function getCategories(): Promise<string[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

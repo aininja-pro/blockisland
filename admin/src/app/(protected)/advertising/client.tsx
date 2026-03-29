@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { type AdWithStats, AD_SLOT_LABELS, type AdSlot } from '@/lib/queries/ad-types'
+import { type SectionWithSlug } from '@/lib/queries/categories'
 import { AdTable } from '@/components/advertising/ad-table'
 import { AdDialog } from '@/components/advertising/ad-dialog'
 import { DeleteAdDialog } from '@/components/advertising/delete-ad-dialog'
@@ -28,9 +29,10 @@ const SLOTS: AdSlot[] = ['top_banner', 'middle_block', 'bottom_block']
 
 interface AdvertisingClientProps {
   ads: AdWithStats[]
+  sections: SectionWithSlug[]
 }
 
-export function AdvertisingClient({ ads }: AdvertisingClientProps) {
+export function AdvertisingClient({ ads, sections }: AdvertisingClientProps) {
   const router = useRouter()
   const [editAd, setEditAd] = useState<AdWithStats | null>(null)
   const [deleteAd, setDeleteAd] = useState<AdWithStats | null>(null)
@@ -124,6 +126,7 @@ export function AdvertisingClient({ ads }: AdvertisingClientProps) {
         onClose={handleDialogClose}
         ad={editAd}
         defaultSlot={defaultSlot}
+        sections={sections}
       />
 
       <DeleteAdDialog

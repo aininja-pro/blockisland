@@ -1,10 +1,14 @@
 import { getAdsWithStats } from '@/lib/queries/ads'
+import { getSectionsWithSlug } from '@/lib/queries/categories'
 import { AdvertisingClient } from './client'
 import { deactivateExpiredAdsAction } from './actions'
 
 export default async function AdvertisingPage() {
   await deactivateExpiredAdsAction()
-  const ads = await getAdsWithStats()
+  const [ads, sections] = await Promise.all([
+    getAdsWithStats(),
+    getSectionsWithSlug(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -19,7 +23,7 @@ export default async function AdvertisingPage() {
         </div>
       </div>
 
-      <AdvertisingClient ads={ads} />
+      <AdvertisingClient ads={ads} sections={sections} />
     </div>
   )
 }

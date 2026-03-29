@@ -1,4 +1,5 @@
 export type AdSlot = 'top_banner' | 'middle_block' | 'bottom_block'
+export type AdLinkType = 'external' | 'internal'
 
 export const AD_SLOT_LABELS: Record<AdSlot, string> = {
   top_banner: 'Top Banner',
@@ -15,6 +16,8 @@ export interface Ad {
   is_active: boolean
   start_date: string | null
   end_date: string | null
+  link_type: AdLinkType
+  linked_listing_id: string | null
   last_served_at: string | null
   created_at: string
   updated_at: string
