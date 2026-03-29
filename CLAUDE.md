@@ -183,10 +183,48 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
    - Widget HTML and Express API unchanged — `destination_url` works the same regardless of link type
    - New queries: `getSectionsWithSlug()`, `getPublishedListingsBySection()`, `getListingsBySectionAction()`
 
+**Completed (March 29, 2026) — Listing Analytics + Click Tracking + Admin Settings:**
+
+13. **Listing page view tracking** — 1x1 transparent PNG tracking pixel injected into ALL listing content HTML:
+    - Express route: `GET /api/track/view?listing_id={UUID}` — fire-and-forget insert to `listing_events` table, returns 68-byte transparent PNG with no-cache headers
+    - Pixel appended at the end of content HTML in `transformToGoodBarber()` (in `src/api/feed.js`)
+    - Tracks every listing detail page open in the GoodBarber app (from any path — ads, browsing, favorites)
+    - API base URL from `process.env.API_BASE_URL` with fallback to `https://blockisland.onrender.com`
+
+14. **CTA click tracking via redirect** — External `<a href>` links in listing content rewritten to route through tracking:
+    - Express route: `GET /api/track/click?listing_id={UUID}&url={encoded}` — fire-and-forget insert, then 302 redirect to destination
+    - Regex rewrites `href` values starting with `http://` or `https://` to tracking redirect URLs
+    - CTA rewriting applied BEFORE hero image div wrapping (so hero `<a href>` to image URL is never rewritten)
+    - Tracking pixel appended AFTER rewriting (so pixel `<img src>` is never caught by regex)
+    - Security: validates URL starts with `http(s)://`, rejects open redirect attacks, fallback to `https://m.theblockislandapp.com`
+    - DB inserts never block the image response or redirect (fire-and-forget pattern)
+
+15. **Listing Analytics admin UI** — New "Listing Analytics" tab on the Advertising page:
+    - Sortable table: Listing, Category, Status (Premium badge / Basic), Views, CTA Clicks
+    - Default sort: premium first, then by category, then by name (matches feed sort order)
+    - Only shows listings with category assignments (filters out old orphaned listings with no categories)
+    - Category dropdown filter + Premium/Basic status filter
+    - Time period filter: 7d, 30d, 90d, All time, Custom date range
+    - CSV export with filename `listing-analytics-{start}-to-{end}.csv`
+    - Summary line: "Showing X listings (Y premium, Z basic) — N views, N clicks"
+    - Query in `admin/src/lib/queries/analytics.ts`, resolves parent section name for subcategory-only listings
+
+16. **Admin Settings page** — New `/settings` route in admin sidebar:
+    - **Feed URLs table**: read-only list of all sections with their feed URLs, copy-to-clipboard button per row
+    - **Rotation Frequency control**: preset buttons (4h, 8h, 12h, 24h) to set premium listing rotation interval
+    - Rotation interval stored in new `settings` table (key-value: `rotation_hours`)
+    - Rotation service (`src/services/rotation.js`) reads `rotation_hours` from DB instead of hardcoded daily check — now compares elapsed hours vs configured interval
+
+17. **Database additions:**
+    - `listing_events` table: `id`, `listing_id` (FK → listings, CASCADE), `event_type` ('view'/'click'), `destination_url` (nullable), `created_at`. Three indexes including composite `(listing_id, event_type, created_at)`. RLS: anon INSERT, authenticated SELECT.
+    - `settings` table: `key` (PK), `value`. Seeded with `rotation_hours = 24`. RLS: authenticated SELECT + UPDATE.
+    - Migration file: `src/db/migration-listing-analytics.sql`
+
 **Known Issues:**
 - Events feed endpoint is stubbed — awaiting GoodBarber schema export
 - Some listings have empty legacy `category` text column — category resolved from junction table at query time
 - GoodBarber strips `<script>` from content field — no JS execution in listing detail view
+- Listing analytics data will start populating after Render deploy (tracking is live as of March 29, 2026)
 
 ---
 
@@ -202,6 +240,7 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 | Mar 26, 2026 | Phase 2: Ad slot system — 3 independent slots, serve endpoint, admin grouped by slot, widget HTML files, auto-deactivation, duplicate, impressions/clicks/CTR tracking. Deployed and live in GoodBarber. | Polish / Phase 3 scoping | RLS UPDATE policy needed for anon key; `ad-types.ts` split to avoid server import in client bundle; zone height 60-70px for top banner |
 | Mar 29, 2026 | Subscription renewal badges (red/orange) + "Due Soon" filter. Stable UUIDs in feed (replaced synthetic IDs). Confirmed GoodBarber sorts by date. Tested JS in content field — stripped, no execution. | Deep linking from ad widgets; CTA click tracking via redirect | GoodBarber Support fixed sort behavior; `<script>` tags stripped from content field |
 | Mar 29, 2026 | Ad internal/external link types — ads can link to internal PWA listings. Searchable listing picker, URL auto-construction from pwa_slug + UUID. Added pwa_slug column to categories (25 sections populated). | Polish / Phase 3 scoping | Section slugs in GoodBarber PWA are arbitrary (not derivable from names); listing slug is cosmetic (UUID does routing); Popover/Command had scroll issues inside Dialog — switched to inline search + radio list |
+| Mar 29, 2026 | Listing analytics + click tracking + admin settings. Tracking pixel in all listing content. CTA link rewriting via redirect. Admin analytics tab with filters. Settings page with feed URLs + rotation frequency. Deployed to Render. | Verify tracking data populates in GoodBarber app; Phase 3 scoping | CTA rewriting applied before hero div wrapping to avoid rewriting image links; `listing_events` and `settings` tables created; rotation service now reads configurable hours from DB |
 
 *Update this at the end of every session so the next session picks up with full context.*
 
@@ -217,3 +256,5 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 - **Categories:** Hierarchical — sections (parent_id = null) contain subcategories. Listings link to categories via `listing_categories` junction table. Events use a simple `category` text field (no junction).
 - **Ads:** Three independent slots served via `GET /api/ads/serve?slot=X`. Round-robin rotation uses `last_served_at` (oldest served first). Each GoodBarber Custom Code Widget fetches its own slot. Impressions/clicks logged to `ad_events` table via fire-and-forget `sendBeacon`. Widget HTML files live in `/widgets/` and are copy-pasted into GoodBarber. Types shared between server and client components must go in `ad-types.ts` (not `ads.ts`) to avoid pulling `next/headers` into the client bundle.
 - **Ad internal links:** Ads have a `link_type` field (`external` or `internal`). Internal links use `linked_listing_id` FK → `listings`. At save time, the server action constructs the PWA URL from the section's `pwa_slug` (stored on `categories` table) + listing UUID + slugified name. The `destination_url` column stores the final URL regardless of link type, so the Express serve endpoint and widget HTML need no changes. If a linked listing is deleted, the FK is SET NULL and the ad table shows a warning.
+- **Listing tracking:** Every listing's content HTML includes a 1x1 tracking pixel (`/api/track/view`) and CTA links rewritten through `/api/track/click`. Both use fire-and-forget DB inserts (never block response). Pixel injection and CTA rewriting happen in `transformToGoodBarber()` in `src/api/feed.js`. CTA rewriting runs BEFORE hero div wrapping (critical — prevents hero image `<a>` from being rewritten). Events logged to `listing_events` table.
+- **Settings:** Key-value `settings` table stores `rotation_hours`. Rotation service reads this instead of hardcoded daily interval. Admin Settings page at `/settings` shows feed URLs + rotation frequency control.
