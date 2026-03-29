@@ -148,17 +148,13 @@ router.get('/maps', async (req, res) => {
     // Filter to only published listings, then transform to GoodBarber format
     const publishedListings = filterPublished(listings);
 
-    // Generate synthetic dates and IDs that encode our sort order.
-    // GoodBarber sorts by ID descending, so the first item (highest priority)
-    // gets the highest ID. IDs start at a high base and count down.
-    // Dates are also synthetic as a fallback sort signal.
+    // Use stable Supabase UUIDs as item IDs (for deep linking).
+    // Synthetic dates still control display order — GoodBarber sorts by date descending.
     const now = new Date();
-    const baseId = 90000000;
     const items = publishedListings.map((l, index) => {
       const d = new Date(now.getTime() - index * 86400000);
       const sortDate = d.toISOString().replace(/\.\d{3}Z$/, '+00:00');
-      const sortId = baseId - index;
-      return transformToGoodBarber(l, sortDate, sortId);
+      return transformToGoodBarber(l, sortDate, l.id);
     });
 
     // Tell GoodBarber (and any proxy) not to cache stale data

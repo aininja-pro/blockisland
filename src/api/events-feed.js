@@ -106,15 +106,13 @@ router.get('/', async (req, res) => {
   try {
     const publishedEvents = await event.getUpcoming();
 
-    // Generate synthetic dates and IDs for GoodBarber sort ordering.
-    // GoodBarber sorts by ID descending, so first event gets highest ID.
+    // Use stable Supabase UUIDs as item IDs (for deep linking).
+    // Synthetic dates still control display order — GoodBarber sorts by date descending.
     const now = new Date();
-    const baseId = 80000000;
     const items = publishedEvents.map((e, index) => {
       const d = new Date(now.getTime() - index * 60000); // 1 minute apart
       const sortDate = d.toISOString().replace(/\.\d{3}Z$/, '+00:00');
-      const sortId = baseId - index;
-      return transformEventToGoodBarber(e, sortDate, sortId);
+      return transformEventToGoodBarber(e, sortDate, e.id);
     });
 
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
