@@ -31,9 +31,6 @@ function transformToGoodBarber(listingData, sortDate, sortId) {
     contentHtml = `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
   }
 
-  // TEMP TEST: check if GoodBarber content webview executes JavaScript
-  contentHtml += `<script>document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');d.style.cssText='background:lime;color:black;padding:12px;text-align:center;font-weight:bold;font-size:16px;margin:10px 0;border-radius:8px;';d.textContent='JS WORKS';document.body.insertBefore(d,document.body.firstChild);});</script>`;
-
   return {
     id,
     title: listingData.name || '',
