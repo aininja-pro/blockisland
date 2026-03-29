@@ -105,11 +105,12 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 ## Current State
 
 **Working:**
-- Admin dashboard fully functional: listings, events, categories, premium toggle, subscription date
+- Admin dashboard fully functional: listings, events, categories, premium toggle, subscription date, renewal warnings
 - GoodBarber custom feed integration tested and live (switchable per section)
 - Premium tier system: premium listings sort above basic, auto-rotation on configurable schedule
 - Ferries section fully integrated
 - Advertising system fully functional: 3-slot ad management, GoodBarber widget integration live
+- **Stable UUIDs in feed** — GoodBarber item IDs are now Supabase row UUIDs (not synthetic integers), enabling deep linking. Confirmed GoodBarber sorts by `date` field, not `id`.
 
 **Completed (March 26, 2026) — 5 polish fixes from Rob call:**
 1. Clone/duplicate for events and listings — 3-dot menu "Duplicate" option, clones all fields + category assignments, strips `goodbarber_id` to avoid unique constraint violations, both listings and events use `"Name (Copy)"` suffix to sort adjacent to original
@@ -155,9 +156,37 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
    - RLS: required `UPDATE` policy on `ads` table for anon role (Express API uses anon key)
    - Client components import types from `ad-types.ts` (not `ads.ts`) to avoid server-only `next/headers` in client bundle
 
+**Completed (March 29, 2026) — Feed & Admin Improvements:**
+
+9. **Subscription renewal warning badges** — Subscription column in admin listings table now shows:
+   - Red "Expired" badge when renewal date (subscription_date + 1 year) has passed
+   - Orange "Xd" badge when within 30 days of renewal
+   - "Due Soon" filter dropdown in toolbar to show only flagged listings
+
+10. **Stable feed IDs** — Switched GoodBarber feed `id` from synthetic descending integers (90000000, 89999999...) to stable Supabase UUIDs. Confirmed GoodBarber now sorts by `date` field (after GoodBarber Support fix). Enables future deep linking from ad widgets into specific listings.
+
+11. **JS test in content field** — Tested whether GoodBarber executes JavaScript in listing `content` HTML. Result: **No** — `<script>` tags are stripped. Click tracking for CTA buttons will need redirect-based approach (not JS).
+
+**Completed (March 29, 2026) — Ad Internal/External Link Types:**
+
+12. **Internal ad links** — Ads can now link to internal listings within the GoodBarber PWA:
+   - DB: `link_type` (text, default 'external') and `linked_listing_id` (FK → listings) columns on `ads` table
+   - DB: `pwa_slug` column on `categories` table — stores the actual GoodBarber PWA section slug (e.g., `ferries-1`, `inns`, `page-bbs`). Slugs are arbitrary and set by GoodBarber, NOT derivable from section names.
+   - Admin form: radio toggle for External URL / Internal Listing
+   - Internal flow: pick a category (section) → searchable listing picker with type-to-filter → URL preview
+   - Selected listing shows as a compact chip with "Change" button to re-pick
+   - URL construction at save time: `https://m.theblockislandapp.com/{pwa_slug}/i/{uuid}/{slugified-name}`
+   - Listing slug is cosmetic — GoodBarber routes by UUID only (verified: wrong slugs still resolve)
+   - Ad table shows external link icon, blue link icon for internal, amber "Deleted" warning if linked listing removed
+   - Duplicate copies `link_type` and `linked_listing_id`
+   - Switching from Internal → External clears the destination URL field
+   - Widget HTML and Express API unchanged — `destination_url` works the same regardless of link type
+   - New queries: `getSectionsWithSlug()`, `getPublishedListingsBySection()`, `getListingsBySectionAction()`
+
 **Known Issues:**
 - Events feed endpoint is stubbed — awaiting GoodBarber schema export
 - Some listings have empty legacy `category` text column — category resolved from junction table at query time
+- GoodBarber strips `<script>` from content field — no JS execution in listing detail view
 
 ---
 
@@ -171,6 +200,8 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 | Mar 26, 2026 | 5 polish fixes: clone, hide sub date, auto-draft, category filter, compact sections | Sections table UI polish + Phase 2 scoping | `goodbarber_id` unique constraint caught during testing; `useSearchParams` required Suspense boundary |
 | Mar 26, 2026 | Sections page: full category management with expandable subcategories, inline edit, CRUD. Premium page: compact sortable table replacing card grid. | Phase 2 scoping | RLS bypass needed for category mutations; timezone bug on date display; legacy `category` column empty for some listings |
 | Mar 26, 2026 | Phase 2: Ad slot system — 3 independent slots, serve endpoint, admin grouped by slot, widget HTML files, auto-deactivation, duplicate, impressions/clicks/CTR tracking. Deployed and live in GoodBarber. | Polish / Phase 3 scoping | RLS UPDATE policy needed for anon key; `ad-types.ts` split to avoid server import in client bundle; zone height 60-70px for top banner |
+| Mar 29, 2026 | Subscription renewal badges (red/orange) + "Due Soon" filter. Stable UUIDs in feed (replaced synthetic IDs). Confirmed GoodBarber sorts by date. Tested JS in content field — stripped, no execution. | Deep linking from ad widgets; CTA click tracking via redirect | GoodBarber Support fixed sort behavior; `<script>` tags stripped from content field |
+| Mar 29, 2026 | Ad internal/external link types — ads can link to internal PWA listings. Searchable listing picker, URL auto-construction from pwa_slug + UUID. Added pwa_slug column to categories (25 sections populated). | Polish / Phase 3 scoping | Section slugs in GoodBarber PWA are arbitrary (not derivable from names); listing slug is cosmetic (UUID does routing); Popover/Command had scroll issues inside Dialog — switched to inline search + radio list |
 
 *Update this at the end of every session so the next session picks up with full context.*
 
@@ -185,3 +216,4 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 - **Auth:** Supabase Auth protects all admin routes via middleware (`admin/src/middleware.ts`).
 - **Categories:** Hierarchical — sections (parent_id = null) contain subcategories. Listings link to categories via `listing_categories` junction table. Events use a simple `category` text field (no junction).
 - **Ads:** Three independent slots served via `GET /api/ads/serve?slot=X`. Round-robin rotation uses `last_served_at` (oldest served first). Each GoodBarber Custom Code Widget fetches its own slot. Impressions/clicks logged to `ad_events` table via fire-and-forget `sendBeacon`. Widget HTML files live in `/widgets/` and are copy-pasted into GoodBarber. Types shared between server and client components must go in `ad-types.ts` (not `ads.ts`) to avoid pulling `next/headers` into the client bundle.
+- **Ad internal links:** Ads have a `link_type` field (`external` or `internal`). Internal links use `linked_listing_id` FK → `listings`. At save time, the server action constructs the PWA URL from the section's `pwa_slug` (stored on `categories` table) + listing UUID + slugified name. The `destination_url` column stores the final URL regardless of link type, so the Express serve endpoint and widget HTML need no changes. If a linked listing is deleted, the FK is SET NULL and the ad table shows a warning.
