@@ -85,8 +85,29 @@ const rotateCategoryPremiums = rotateSectionPremiums;
 const rotateAllCategories = rotateAllSections;
 
 /**
- * Check if rotation should run today.
- * Returns true if no rotation has occurred today (or ever).
+ * Read rotation_hours from the settings table.
+ * Falls back to 24 if the setting doesn't exist or the query fails.
+ *
+ * @returns {Promise<number>} Rotation interval in hours
+ */
+async function getRotationHours() {
+  try {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'rotation_hours')
+      .single();
+
+    if (error || !data) return 24;
+    return parseInt(data.value, 10) || 24;
+  } catch {
+    return 24;
+  }
+}
+
+/**
+ * Check if rotation is needed based on the configured interval.
+ * Returns true if enough time has passed since the last rotation (or if never rotated).
  *
  * @returns {Promise<boolean>} True if rotation needed
  */
@@ -107,15 +128,14 @@ async function needsRotation() {
     return true;
   }
 
-  // Check if last rotation was before today
+  // Check if enough hours have elapsed since last rotation
   const lastRotated = new Date(data[0].last_rotated_at);
-  const today = new Date();
+  const now = new Date();
+  const rotationHours = await getRotationHours();
+  const elapsedMs = now.getTime() - lastRotated.getTime();
+  const intervalMs = rotationHours * 3600 * 1000;
 
-  // Compare date parts only (ignore time)
-  const lastRotatedDate = lastRotated.toISOString().split('T')[0];
-  const todayDate = today.toISOString().split('T')[0];
-
-  return lastRotatedDate < todayDate;
+  return elapsedMs >= intervalMs;
 }
 
 module.exports = {

@@ -241,3 +241,30 @@ export async function toggleAdActiveAction(id: string, isActive: boolean) {
 export async function getListingsBySectionAction(sectionId: string) {
   return getPublishedListingsBySection(sectionId)
 }
+
+export async function getListingAnalyticsAction(periodStart: string, periodEnd: string) {
+  const { getListingAnalytics } = await import('@/lib/queries/analytics')
+  return getListingAnalytics(periodStart, periodEnd)
+}
+
+export async function getRotationSettingAction() {
+  const { getRotationSetting } = await import('@/lib/queries/analytics')
+  return getRotationSetting()
+}
+
+export async function updateRotationSettingAction(hours: number) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('settings')
+    .update({ value: String(hours) })
+    .eq('key', 'rotation_hours')
+
+  if (error) {
+    console.error('Error updating rotation setting:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/settings')
+  return { success: true }
+}

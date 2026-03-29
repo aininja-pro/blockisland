@@ -4,6 +4,36 @@ const listing = require('../models/listing');
 const { needsRotation, rotateAllSections } = require('../services/rotation');
 const { stripHtmlAndTruncate, parseDescriptionToHtml } = require('./feed-helpers');
 
+// Base URL for tracking endpoints (pixel + click redirect)
+const API_BASE = process.env.API_BASE_URL || 'https://blockisland.onrender.com';
+
+/**
+ * Rewrite external <a href> links in content HTML to route through click tracking.
+ * Only rewrites href values starting with http:// or https://.
+ * @param {string} html - Content HTML
+ * @param {string} listingId - Listing UUID
+ * @returns {string} HTML with rewritten links
+ */
+function rewriteCtaLinks(html, listingId) {
+  if (!html) return html;
+  return html.replace(
+    /<a\s+([^>]*?)href="(https?:\/\/[^"]+)"([^>]*)>/gi,
+    (match, before, url, after) => {
+      const trackUrl = `${API_BASE}/api/track/click?listing_id=${listingId}&url=${encodeURIComponent(url)}`;
+      return `<a ${before}href="${trackUrl}"${after}>`;
+    }
+  );
+}
+
+/**
+ * Build a tracking pixel <img> tag for a listing.
+ * @param {string} listingId - Listing UUID
+ * @returns {string} Invisible 1x1 image tag
+ */
+function buildTrackingPixel(listingId) {
+  return `<img src="${API_BASE}/api/track/view?listing_id=${listingId}" width="1" height="1" style="position:absolute;opacity:0;" />`;
+}
+
 /**
  * Transform a listing to GoodBarber Custom Map Feed format.
  * @param {Object} listing - Listing from database
@@ -22,6 +52,13 @@ function transformToGoodBarber(listingData, sortDate, sortId) {
 
   // Convert description (JSON blocks or legacy HTML) to HTML for GoodBarber
   let contentHtml = parseDescriptionToHtml(listingData.description);
+
+  // 1. Rewrite CTA <a href> links to route through click tracking
+  //    Done BEFORE hero/texte wrapping so the hero image <a> isn't rewritten
+  contentHtml = rewriteCtaLinks(contentHtml, listingData.id);
+
+  // 2. Append tracking pixel (after CTA rewriting so pixel URL isn't caught)
+  contentHtml += buildTrackingPixel(listingData.id);
 
   // Include hero image in content for native app display
   if (listingData.image_url) {

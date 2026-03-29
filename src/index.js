@@ -5,6 +5,7 @@ const cors = require('cors');
 const feedRoutes = require('./api/feed');
 const eventsFeedRoutes = require('./api/events-feed');
 const adsRoutes = require('./api/ads');
+const trackRoutes = require('./api/track');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/feed', feedRoutes);
 app.use('/api/feed/events', eventsFeedRoutes);
 app.use('/api/ads', adsRoutes);
+app.use('/api/track', trackRoutes);
 
 // Start server
 app.listen(PORT, () => {
