@@ -14,8 +14,26 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Build output
+.next/
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Playwright MCP
+.playwright-mcp/
+
+# Planning docs & screenshots (not for client repo)
+*.pdf
+*.rtf
+*.png
+AGENTS.md
+blueprint-*.md
+claude-code-prompt.md
+claude_code_phase2_context.md
+events_claude_code_prompt.md
+Structure.rtf
+Rob & Ray*.txt

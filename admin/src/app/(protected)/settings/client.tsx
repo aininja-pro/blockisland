@@ -107,6 +107,40 @@ export function SettingsClient({ sections, rotationHours: initialHours }: Settin
         </CardContent>
       </Card>
 
+      {/* Events Feed URL */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Events Feed URL</CardTitle>
+          <CardDescription>
+            GoodBarber feed URL for the Events section.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <code className="text-sm text-slate-500 font-mono break-all flex-1">
+              {API_BASE}/api/feed/events
+            </code>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={async () => {
+                await navigator.clipboard.writeText(`${API_BASE}/api/feed/events`)
+                setCopiedId('events')
+                toast.success('Copied!')
+                setTimeout(() => setCopiedId(null), 2000)
+              }}
+            >
+              {copiedId === 'events' ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Rotation Frequency */}
       <Card>
         <CardHeader>
