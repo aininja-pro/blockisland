@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, ChevronRight, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -24,21 +24,35 @@ import { updateRotationSettingAction } from './actions'
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://blockisland.onrender.com'
 const ROTATION_OPTIONS = [4, 8, 12, 24] as const
 
+interface SectionWithSubs {
+  id: string
+  name: string
+  subcategories: { id: string; name: string }[]
+}
+
 interface SettingsClientProps {
-  sections: { id: string; name: string }[]
+  sections: SectionWithSubs[]
   rotationHours: number
 }
 
 export function SettingsClient({ sections, rotationHours: initialHours }: SettingsClientProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [selectedHours, setSelectedHours] = useState(initialHours)
   const [saving, setSaving] = useState(false)
 
-  const handleCopy = async (sectionName: string, sectionId: string) => {
-    const encodedName = encodeURIComponent(sectionName)
-    const url = `${API_BASE}/api/feed/maps?section=${encodedName}`
+  const toggleExpanded = (sectionId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(sectionId)) next.delete(sectionId)
+      else next.add(sectionId)
+      return next
+    })
+  }
+
+  const handleCopy = async (url: string, id: string) => {
     await navigator.clipboard.writeText(url)
-    setCopiedId(sectionId)
+    setCopiedId(id)
     toast.success('Copied!')
     setTimeout(() => setCopiedId(null), 2000)
   }
@@ -76,29 +90,80 @@ export function SettingsClient({ sections, rotationHours: initialHours }: Settin
               </TableHeader>
               <TableBody>
                 {sections.map((section) => {
-                  const encodedName = encodeURIComponent(section.name)
-                  const url = `${API_BASE}/api/feed/maps?section=${encodedName}`
+                  const encodedSection = encodeURIComponent(section.name)
+                  const sectionUrl = `${API_BASE}/api/feed/maps?section=${encodedSection}`
+                  const isExpanded = expandedSections.has(section.id)
+                  const hasSubs = section.subcategories.length > 0
+
                   return (
-                    <TableRow key={section.id}>
-                      <TableCell className="font-medium">{section.name}</TableCell>
-                      <TableCell className="text-sm text-slate-500 font-mono break-all">
-                        {url}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleCopy(section.name, section.id)}
-                        >
-                          {copiedId === section.id ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow key={section.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-1">
+                            {hasSubs ? (
+                              <button
+                                onClick={() => toggleExpanded(section.id)}
+                                className="p-0.5 hover:bg-slate-100 rounded"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                                )}
+                              </button>
+                            ) : (
+                              <span className="w-5" />
+                            )}
+                            {section.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-500 font-mono break-all">
+                          {sectionUrl}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleCopy(sectionUrl, section.id)}
+                          >
+                            {copiedId === section.id ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && section.subcategories.map((sub) => {
+                        const subUrl = `${API_BASE}/api/feed/maps?section=${encodedSection}&subcategory=${encodeURIComponent(sub.name)}`
+                        const subCopyId = `${section.id}-${sub.id}`
+                        return (
+                          <TableRow key={subCopyId} className="bg-slate-50">
+                            <TableCell className="font-medium text-slate-600">
+                              <div className="pl-8">{sub.name}</div>
+                            </TableCell>
+                            <TableCell className="text-sm text-slate-400 font-mono break-all">
+                              {subUrl}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleCopy(subUrl, subCopyId)}
+                              >
+                                {copiedId === subCopyId ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </>
                   )
                 })}
               </TableBody>

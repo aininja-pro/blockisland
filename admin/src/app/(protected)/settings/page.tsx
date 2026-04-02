@@ -13,6 +13,16 @@ export default async function SettingsPage() {
     .filter((c) => c.parent_id === null)
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 
+  // Build sections with subcategories
+  const sectionsWithSubs = sections.map((s) => ({
+    id: s.id,
+    name: s.name,
+    subcategories: categories
+      .filter((c) => c.parent_id === s.id)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      .map((c) => ({ id: c.id, name: c.name })),
+  }))
+
   return (
     <div className="space-y-6">
       <div>
@@ -25,7 +35,7 @@ export default async function SettingsPage() {
       </div>
 
       <SettingsClient
-        sections={sections.map((s) => ({ id: s.id, name: s.name }))}
+        sections={sectionsWithSubs}
         rotationHours={rotationHours}
       />
     </div>

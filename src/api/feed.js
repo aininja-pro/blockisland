@@ -146,7 +146,7 @@ router.get('/maps', async (req, res) => {
       await rotateAllSections();
     }
 
-    const { category, section } = req.query;
+    const { category, section, subcategory } = req.query;
     let listings;
 
     if (section) {
@@ -154,6 +154,11 @@ router.get('/maps', async (req, res) => {
       // Returns listings with subcategory_name for filter tabs
       listings = await listing.getListingsForSection(section);
       listings = sortListings(listings);
+
+      // Filter by subcategory if specified (for GoodBarber section filters)
+      if (subcategory) {
+        listings = listings.filter(l => l.subcategory_name === subcategory);
+      }
     } else if (category) {
       // Legacy: category-based filtering (backward compatibility)
       listings = await listing.getSortedByCategory(category);
