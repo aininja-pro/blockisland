@@ -66,7 +66,7 @@ async function getUpcoming() {
   const { data, error } = await supabase
     .from('events')
     .select('*')
-    .gte('start_date', new Date().toISOString())
+    .gte('start_date', new Date().toISOString().split('T')[0])
     .eq('is_published', true)
     .order('start_date', { ascending: true });
 
