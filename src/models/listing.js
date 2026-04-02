@@ -328,18 +328,22 @@ async function getListingsForSection(sectionName) {
   if (lcError) throw lcError;
   if (!listingCategories || listingCategories.length === 0) return [];
 
-  // 5. Build listing ID to subcategory name map
-  // Prefer subcategory name over section name for subtype
-  const listingSubcategory = {};
+  // 5. Build listing ID to subcategory names map (a listing can have multiple subcategories)
+  const listingSubcategories = {};
   listingCategories.forEach(lc => {
+    if (!listingSubcategories[lc.listing_id]) {
+      listingSubcategories[lc.listing_id] = [];
+    }
     if (subcategoryMap[lc.category_id]) {
-      // This is a subcategory - use its name
-      listingSubcategory[lc.listing_id] = subcategoryMap[lc.category_id];
-    } else if (!listingSubcategory[lc.listing_id]) {
-      // This is the section itself - fallback if no subcategory
-      listingSubcategory[lc.listing_id] = sectionName;
+      listingSubcategories[lc.listing_id].push(subcategoryMap[lc.category_id]);
     }
   });
+  // For listings with no subcategory, fallback to section name
+  for (const listingId of Object.keys(listingSubcategories)) {
+    if (listingSubcategories[listingId].length === 0) {
+      listingSubcategories[listingId].push(sectionName);
+    }
+  }
 
   // 6. Get unique listing IDs
   const listingIds = [...new Set(listingCategories.map(lc => lc.listing_id))];
@@ -352,11 +356,15 @@ async function getListingsForSection(sectionName) {
 
   if (listingsError) throw listingsError;
 
-  // 8. Add subcategory_name to each listing for GoodBarber subtype
-  return (listings || []).map(listing => ({
-    ...listing,
-    subcategory_name: listingSubcategory[listing.id] || sectionName,
-  }));
+  // 8. Add subcategory info to each listing for GoodBarber subtype + filtering
+  return (listings || []).map(listing => {
+    const names = listingSubcategories[listing.id] || [sectionName];
+    return {
+      ...listing,
+      subcategory_name: names[0],
+      subcategory_names: names,
+    };
+  });
 }
 
 /**

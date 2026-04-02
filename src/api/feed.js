@@ -84,7 +84,7 @@ function transformToGoodBarber(listingData, sortDate, sortId) {
     date: sortDate || listingData.created_at || '',
     type: 'maps',
     subtype: 'mcms',
-    categories: listingData.subcategory_name ? [listingData.subcategory_name] : [],
+    categories: listingData.subcategory_names || (listingData.subcategory_name ? [listingData.subcategory_name] : []),
     isFeatured: listingData.image_url ? `img-${id}` : '',
     commentsEnabled: false,
     nbcomments: 0,
@@ -157,7 +157,7 @@ router.get('/maps', async (req, res) => {
 
       // Filter by subcategory if specified (for GoodBarber section filters)
       if (subcategory) {
-        listings = listings.filter(l => l.subcategory_name === subcategory);
+        listings = listings.filter(l => l.subcategory_names && l.subcategory_names.includes(subcategory));
       }
     } else if (category) {
       // Legacy: category-based filtering (backward compatibility)
