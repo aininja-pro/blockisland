@@ -112,7 +112,7 @@ function sortListings(listings) {
     if (a.is_premium && b.is_premium) {
       return (a.rotation_position || 0) - (b.rotation_position || 0);
     }
-    return (a.name || '').localeCompare(b.name || '');
+    return (a.name || '').trim().localeCompare((b.name || '').trim());
   });
 }
 
