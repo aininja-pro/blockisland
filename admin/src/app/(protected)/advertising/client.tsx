@@ -17,7 +17,7 @@ import { type SectionWithSlug } from '@/lib/queries/categories'
 import { AdTable } from '@/components/advertising/ad-table'
 import { AdDialog } from '@/components/advertising/ad-dialog'
 import { DeleteAdDialog } from '@/components/advertising/delete-ad-dialog'
-import { duplicateAdAction, toggleAdActiveAction } from './actions'
+import { duplicateAdAction, toggleAdActiveAction, resetAdStatsAction } from './actions'
 
 const SLOT_DESCRIPTIONS: Record<AdSlot, string> = {
   top_banner: 'Thin strip above all category tiles — 750 x 120 px',
@@ -74,6 +74,16 @@ export function AdvertisingClient({ ads, sections }: AdvertisingClientProps) {
     router.refresh()
   }
 
+  const handleResetStats = async (ad: AdWithStats) => {
+    const result = await resetAdStatsAction(ad.id)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+    toast.success('Stats reset to zero')
+    router.refresh()
+  }
+
   const handleDialogClose = (refresh?: boolean) => {
     setDialogOpen(false)
     setEditAd(null)
@@ -113,6 +123,7 @@ export function AdvertisingClient({ ads, sections }: AdvertisingClientProps) {
                   onDelete={handleDelete}
                   onToggleActive={handleToggleActive}
                   onDuplicate={handleDuplicate}
+                  onResetStats={handleResetStats}
                   hideSlotColumn
                 />
               </CardContent>

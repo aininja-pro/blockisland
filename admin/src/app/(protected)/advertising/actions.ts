@@ -209,6 +209,22 @@ export async function duplicateAdAction(id: string) {
   return { success: true }
 }
 
+export async function resetAdStatsAction(id: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('ad_events')
+    .delete()
+    .eq('ad_id', id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/advertising')
+  return { success: true }
+}
+
 export async function deactivateExpiredAdsAction() {
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
