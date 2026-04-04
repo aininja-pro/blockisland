@@ -50,6 +50,7 @@ interface DataTableProps<TData, TValue> {
   sectionCategories: CategoryWithChildren[]  // Hierarchical categories
   listingCategoryIds: Record<string, string[]>  // Listing ID -> category IDs
   onBulkDelete?: (rows: TData[]) => void
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData extends Listing, TValue>({
@@ -59,6 +60,7 @@ export function DataTable<TData extends Listing, TValue>({
   sectionCategories,
   listingCategoryIds,
   onBulkDelete,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -371,6 +373,12 @@ export function DataTable<TData extends Listing, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  className={onRowClick ? 'cursor-pointer' : ''}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement
+                    if (target.closest('button, input, [role="checkbox"], [role="menuitem"], [data-radix-collection-item]')) return
+                    onRowClick?.(row.original)
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

@@ -132,6 +132,7 @@ export function ListingsClient({ listings, filterCategories, categories, listing
         sectionCategories={categories}
         listingCategoryIds={listingCategoryIds}
         onBulkDelete={handleBulkDelete}
+        onRowClick={handleEdit}
       />
 
       <ListingDialog
