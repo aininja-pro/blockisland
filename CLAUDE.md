@@ -21,8 +21,8 @@ Full workspace access required. Next.js admin + Express API + Supabase schema al
 - **Feed API:** Node.js + Express (serves JSON feeds to GoodBarber)
 - **Database:** PostgreSQL via Supabase
 - **Auth:** Supabase Auth
-- **Deploy:** Render (`https://blockisland.onrender.com`)
-- **Repo:** https://github.com/aininja-pro/blockisland
+- **Deploy:** Render — API: `https://blockisland-api.onrender.com` | Admin: `https://blockisland-admin.onrender.com` (custom domain: `listings.theblockislandapp.com`)
+- **Repo:** https://github.com/theblockislandapp-bi/listings (client) | https://github.com/aininja-pro/blockisland (dev)
 
 ---
 
@@ -220,11 +220,54 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
     - `settings` table: `key` (PK), `value`. Seeded with `rotation_hours = 24`. RLS: authenticated SELECT + UPDATE.
     - Migration file: `src/db/migration-listing-analytics.sql`
 
+**Completed (April 1, 2026) — Client Infrastructure Transfer:**
+
+18. **GitHub + Render transfer** — Pushed codebase to client's GitHub (`theblockislandapp-bi/listings`). Both remotes maintained: `origin` (dev) and `client` (production).
+
+19. **Supabase transfer** — Transferred Supabase project from dev org to client org ("The Block Island App"). All data, keys, and URLs preserved — no env var changes needed.
+
+20. **Render deployment** — Two services on client's Render account:
+    - **API** (`blockisland-api`): Express, serves GoodBarber feeds + tracking
+    - **Admin** (`blockisland-admin`): Next.js, staff dashboard with custom domain `listings.theblockislandapp.com`
+
+21. **Database migration** — Created `full-schema-migration.sql` with all tables, indexes, RLS policies. Events table RLS policies added separately. Import scripts generated for CSV-to-SQL data migration.
+
+22. **Events import** — 3,544 events imported from new GoodBarber JSON export (`docs/agenda/`) using `--reset` flag to replace all existing events.
+
+**Completed (April 1-2, 2026) — Feed & Sorting Fixes:**
+
+23. **Sort whitespace fix** — Listing names with leading spaces (e.g. " Virginica Pizza") sorted incorrectly. Added `.trim()` to all `localeCompare` calls in `feed.js` and `listing.js`.
+
+24. **Subcategory feed filter** — Feed now supports `?section=X&subcategory=Y` to return only listings in a specific subcategory. Used for GoodBarber section filter tabs.
+
+25. **Multi-subcategory support** — Listings can belong to multiple subcategories (e.g. Fine Dining + Seafood + American). Fixed `getListingsForSection()` to track all subcategory assignments per listing instead of only keeping the last one. Feed `categories` array now includes all subcategories.
+
+26. **Settings subcategory URLs** — Settings page now shows expandable sections with subcategory filter URLs. Click chevron to reveal subcategory rows with copy-to-clipboard URLs for GoodBarber filter setup.
+
+27. **Events feed date fix** — `getUpcoming()` was comparing `start_date` against exact current timestamp, excluding events that started earlier today. Changed to compare against date-only (`YYYY-MM-DD`) to include all of today's events.
+
+**Completed (April 2-3, 2026) — Admin Features:**
+
+28. **User management page** — New `/users` route in admin sidebar:
+    - User table: Email, Created, Last Sign In, Delete button
+    - Add User dialog: email + password, creates via Supabase Auth Admin API (`createAdminClient()`)
+    - Change Password dialog: users change their own password
+    - Self-deletion prevention
+    - Uses `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+
+29. **Reset Stats for ads** — "Reset Stats" option in ad 3-dot menu. Deletes `ad_events` rows for that ad, zeroing out impressions/clicks/CTR. Requires `DELETE` RLS policy on `ad_events` for authenticated role.
+
+30. **Clickable listing rows** — Clicking anywhere on a listing row opens the edit modal. Interactive elements (checkboxes, toggles, date inputs, 3-dot menu) excluded via `closest()` check.
+
+31. **Chamber link fix** — SQL update replaced 348 listings' broken GoodBarber internal link (`/community-places/i/24039402/...`) with `https://www.blockislandchamber.com/`.
+
+32. **Ad widget responsive CSS** — Middle block widget updated with media query: mobile uses `object-fit: cover` at 180px height, PWA (>=768px) constrains to `max-width: 750px` with `height: auto`. Zone height set to 195px in GoodBarber.
+
 **Known Issues:**
-- Events feed endpoint is stubbed — awaiting GoodBarber schema export
 - Some listings have empty legacy `category` text column — category resolved from junction table at query time
 - GoodBarber strips `<script>` from content field — no JS execution in listing detail view
-- Listing analytics data will start populating after Render deploy (tracking is live as of March 29, 2026)
+- GoodBarber Custom Code Widget zone height is fixed per platform — can't set different heights for mobile vs PWA. Current 195px is a compromise.
+- Ad widget HTML files must be manually copy-pasted into GoodBarber when updated — not auto-deployed
 
 ---
 
@@ -242,6 +285,9 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 | Mar 29, 2026 | Ad internal/external link types — ads can link to internal PWA listings. Searchable listing picker, URL auto-construction from pwa_slug + UUID. Added pwa_slug column to categories (25 sections populated). | Polish / Phase 3 scoping | Section slugs in GoodBarber PWA are arbitrary (not derivable from names); listing slug is cosmetic (UUID does routing); Popover/Command had scroll issues inside Dialog — switched to inline search + radio list |
 | Mar 29, 2026 | Listing analytics + click tracking + admin settings. Tracking pixel in all listing content. CTA link rewriting via redirect. Admin analytics tab with filters. Settings page with feed URLs + rotation frequency. Deployed to Render. | Verify tracking data populates in GoodBarber app; Phase 3 scoping | CTA rewriting applied before hero div wrapping to avoid rewriting image links; `listing_events` and `settings` tables created; rotation service now reads configurable hours from DB |
 | Mar 29, 2026 | Admin UI polish: renamed sidebar title to "The Block Island App" in black pill header, removed Import nav item, added Settings nav item, logo.png in admin/public for future use. | Get higher-res logo PNG for sidebar | Small logo was too low-res to use inline; parked in public/ for when a bigger version is available |
+| Apr 1, 2026 | Transferred GitHub, Supabase, and Render to client. Two Render services (API + Admin). Full DB migration. Events import (3,544 events). Gitignore cleanup. | Subcategory filters, events feed fixes | Supabase transfer via project transfer (not data migration). Render doesn't support service transfers. |
+| Apr 2, 2026 | Subcategory feed filter (`?subcategory=X`). Multi-subcategory fix. Settings subcategory URLs. Events feed date fix (today's events excluded). Sort whitespace fix. | User management, ad reset stats | Listings with multiple subcategories only kept last one — fixed to track all. `getUpcoming()` compared exact timestamp not date. |
+| Apr 3, 2026 | User management page (CRUD via Auth Admin API). Ad reset stats. Clickable listing rows. Chamber link SQL fix (348 listings). Ad widget responsive CSS for PWA. | GoodBarber section filter setup, ad optimization | Zone height 195px is PWA/mobile compromise. Widget HTML manually pasted into GoodBarber. |
 
 *Update this at the end of every session so the next session picks up with full context.*
 
@@ -249,8 +295,9 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 
 ## Architecture Notes
 
-- **Two servers:** Express (`/src`) serves GoodBarber feeds. Next.js (`/admin`) serves the admin UI. They share the same Supabase instance.
-- **Feed pattern:** GoodBarber pulls from `https://blockisland.onrender.com/api/feed/maps?section=X`. Switching a section's source in GoodBarber from internal CMS to the custom URL is non-destructive and reversible.
+- **Two servers, two Render services:** Express (`/src`) serves GoodBarber feeds at `blockisland-api.onrender.com`. Next.js (`/admin`) serves the admin UI at `blockisland-admin.onrender.com` (custom domain: `listings.theblockislandapp.com`). Both deploy from client's GitHub (`theblockislandapp-bi/listings`). They share the same Supabase instance.
+- **Two git remotes:** `origin` = `aininja-pro/blockisland` (dev), `client` = `theblockislandapp-bi/listings` (production). Push to both on every commit.
+- **Feed pattern:** GoodBarber pulls from `https://blockisland-api.onrender.com/api/feed/maps?section=X`. Supports `&subcategory=Y` for section filter tabs. Switching a section's source in GoodBarber from internal CMS to the custom URL is non-destructive and reversible.
 - **Premium sort:** Listings are returned pre-sorted by the feed endpoint — premium first, then basic. Rotation happens server-side on a schedule.
 - **Fragile:** The GoodBarber feed JSON shape is rigid. The `isFeatured` field controls hero image display. Synthetic dates control sort order. Any change to feed output needs to be tested in the app before going live.
 - **Auth:** Supabase Auth protects all admin routes via middleware (`admin/src/middleware.ts`).
@@ -258,4 +305,7 @@ Ray tells Claude Code exactly what to build, file by file. Follow instructions p
 - **Ads:** Three independent slots served via `GET /api/ads/serve?slot=X`. Round-robin rotation uses `last_served_at` (oldest served first). Each GoodBarber Custom Code Widget fetches its own slot. Impressions/clicks logged to `ad_events` table via fire-and-forget `sendBeacon`. Widget HTML files live in `/widgets/` and are copy-pasted into GoodBarber. Types shared between server and client components must go in `ad-types.ts` (not `ads.ts`) to avoid pulling `next/headers` into the client bundle.
 - **Ad internal links:** Ads have a `link_type` field (`external` or `internal`). Internal links use `linked_listing_id` FK → `listings`. At save time, the server action constructs the PWA URL from the section's `pwa_slug` (stored on `categories` table) + listing UUID + slugified name. The `destination_url` column stores the final URL regardless of link type, so the Express serve endpoint and widget HTML need no changes. If a linked listing is deleted, the FK is SET NULL and the ad table shows a warning.
 - **Listing tracking:** Every listing's content HTML includes a 1x1 tracking pixel (`/api/track/view`) and CTA links rewritten through `/api/track/click`. Both use fire-and-forget DB inserts (never block response). Pixel injection and CTA rewriting happen in `transformToGoodBarber()` in `src/api/feed.js`. CTA rewriting runs BEFORE hero div wrapping (critical — prevents hero image `<a>` from being rewritten). Events logged to `listing_events` table.
-- **Settings:** Key-value `settings` table stores `rotation_hours`. Rotation service reads this instead of hardcoded daily interval. Admin Settings page at `/settings` shows feed URLs + rotation frequency control.
+- **Settings:** Key-value `settings` table stores `rotation_hours`. Rotation service reads this instead of hardcoded daily interval. Admin Settings page at `/settings` shows feed URLs (with expandable subcategory filter URLs) + rotation frequency control.
+- **User management:** Admin `/users` page uses `createAdminClient()` (service role key) for Supabase Auth Admin API operations (create/delete users). Users change their own password via regular authenticated session. Self-deletion prevented.
+- **Subcategory filtering:** Listings can belong to multiple subcategories. `getListingsForSection()` tracks all subcategory assignments per listing in `subcategory_names` array. Feed `categories` field includes all subcategories. `?subcategory=X` filter checks the array.
+- **Events feed:** `getUpcoming()` filters `start_date >= today` (date only, not timestamp) to include all of today's events. `autoDraftPastEventsAction()` sets `is_published = false` for events with `end_date < today` on admin page load.

@@ -68,8 +68,9 @@ function toInputValue(isoString: string | null | undefined, allDay: boolean): st
     return date.toISOString().split('T')[0]
   }
   // datetime-local needs YYYY-MM-DDTHH:MM format
+  // Use UTC methods since we store wall-clock time as UTC in TIMESTAMPTZ
   const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`
 }
 
 export function EventForm({
