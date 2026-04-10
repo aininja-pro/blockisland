@@ -23,8 +23,9 @@ interface ColumnsProps {
 
 function formatEventDate(startDate: string, endDate: string | null, allDay: boolean): string {
   const start = new Date(startDate)
-  const dateOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }
-  const timeOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' }
+  // Use UTC timezone since we store wall-clock time as UTC
+  const dateOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }
+  const timeOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }
 
   if (allDay) {
     const startStr = start.toLocaleDateString('en-US', dateOpts)
