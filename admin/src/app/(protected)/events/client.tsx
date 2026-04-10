@@ -97,6 +97,7 @@ export function EventsClient({ events }: EventsClientProps) {
         columns={columns}
         data={events}
         onBulkDelete={handleBulkDelete}
+        onRowClick={handleEdit}
       />
 
       <EventDialog
