@@ -12,7 +12,7 @@ Block Island is a content management system for a GoodBarber mobile app serving 
 
 - `src/index.js` — Entry point, mounts routes
 - `src/api/feed.js` — Map listing feeds for GoodBarber (`/api/feed/maps?section=X`)
-- `src/api/events-feed.js` — Events feed stub (`/api/feed/events`) — pending GoodBarber schema
+- `src/api/events-feed.js` — Events feed (`/api/feed/events`), rewrites stored UTC offset to America/New_York (DST-aware) so GoodBarber renders Block Island wall-clock time
 - `src/api/ads.js` — Advertising endpoints (`/serve?slot=X`, `/active`, `/:id/impression`, `/:id/click`)
 - `src/models/listing.js` — Listing CRUD + section/category queries
 - `src/models/event.js` — Event CRUD (getAll, getById, getUpcoming, create, update, delete)
@@ -67,8 +67,17 @@ Deployed to Render at `https://blockisland.onrender.com`.
 
 - Feed endpoint serves JSON in GoodBarber's custom feed format
 - 24 map sections, each with its own feed URL
-- Events feed endpoint is stubbed (awaiting GoodBarber schema export)
+- Events feed at `/api/feed/events` returns upcoming published events, sorted by synthetic `sortDate` (1 minute apart) for display order
 - Key quirks: `isFeatured` field required for hero images, synthetic dates control sort order
+
+### Event time / timezone handling
+
+Events have a subtle timezone model worth understanding before touching date code:
+
+- **Admin input** uses `<input type="datetime-local">` which emits a naive wall-clock string (`"2026-04-15T17:00"`). This lands in a Supabase `TIMESTAMPTZ` column and gets labeled `+00:00` — so the wall-clock hour the user typed is preserved, but the timezone label is *wrong* (UTC rather than Eastern).
+- **Admin display** (`columns.tsx`, `event-form.tsx:toInputValue`) reads it back using `timeZone: 'UTC'` / `getUTC*` methods, so the original hour round-trips correctly.
+- **Feed output** (`events-feed.js:formatEasternWallClock`) rewrites the offset to America/New_York (EDT `-04:00` / EST `-05:00`, DST-aware via `Intl.DateTimeFormat` `longOffset`). The wall-clock hour stays the same; only the offset label changes. This makes GoodBarber render 5 PM as 5 PM for Block Island users.
+- **GoodBarber always converts to the phone's local timezone** for event `date`/`endDate`. Users outside ET will see shifted times — that's standard calendar-app behavior and cannot be overridden from the feed side. If a "display as ET regardless of device TZ" requirement comes up, it has to be done as literal text in the title/description.
 
 ## Advertising System
 
