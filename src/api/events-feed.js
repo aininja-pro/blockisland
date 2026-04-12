@@ -28,6 +28,32 @@ function easternOffset(date) {
   return raw.replace(/^(GMT|UTC)/, '') || '-05:00';
 }
 
+// Format a wall-clock-stored-as-UTC timestamp into a human time range with an
+// explicit "ET" label. Returns "" for all-day events or missing start. Used to
+// surface the Block Island local time in title and content regardless of the
+// viewer's device timezone (GoodBarber's native time display always converts
+// to phone-local).
+function formatEtTimeRange(startIso, endIso, allDay) {
+  if (allDay || !startIso) return '';
+  const start = new Date(startIso);
+  const end = endIso ? new Date(endIso) : null;
+  const fmt = d => {
+    const h = d.getUTCHours();
+    const m = d.getUTCMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return m === 0 ? `${h12}:00 ${ampm}` : `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  };
+  const startStr = fmt(start);
+  if (!end) return `${startStr} ET`;
+  const sameDay =
+    start.getUTCFullYear() === end.getUTCFullYear() &&
+    start.getUTCMonth() === end.getUTCMonth() &&
+    start.getUTCDate() === end.getUTCDate();
+  if (!sameDay) return `${startStr} ET`;
+  return `${startStr} – ${fmt(end)} ET`;
+}
+
 // Event times are stored as wall-clock values in a TIMESTAMPTZ column (naive
 // datetime-local input lands with a +00:00 offset). Reinterpret the wall-clock
 // hour as Block Island local time so GoodBarber's mobile app renders correctly.
@@ -64,14 +90,21 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
     });
   }
 
-  // Build content HTML with hero image + texte div (same pattern as maps feed)
-  let contentHtml = parseDescriptionToHtml(eventData.description);
+  const timeLabel = formatEtTimeRange(eventData.start_date, eventData.end_date, eventData.all_day);
+  const titleBase = eventData.title || '';
+  const title = timeLabel ? `${titleBase} — ${timeLabel}` : titleBase;
+
+  // Build content HTML with hero image + texte div (same pattern as maps feed).
+  // Prepend the ET time line inside the texte div so it sits above the description.
+  const description = parseDescriptionToHtml(eventData.description);
+  const timeLine = timeLabel ? `<p><strong>${timeLabel}</strong></p> ` : '';
+  let contentHtml;
 
   if (imageUrl) {
-    const heroHtml = ` <div class="photo top" style="text-align:center"> <a href="${imageUrl}" target="_blank"> <img id="img-${id}" src="${imageUrl}" alt="${eventData.title || ''}" title="${eventData.title || ''}" /> </a> </div> <br class="clear" /> `;
-    contentHtml = heroHtml + `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
+    const heroHtml = ` <div class="photo top" style="text-align:center"> <a href="${imageUrl}" target="_blank"> <img id="img-${id}" src="${imageUrl}" alt="${titleBase}" title="${titleBase}" /> </a> </div> <br class="clear" /> `;
+    contentHtml = heroHtml + `<div class="texte"> ${timeLine}${description} </div> <br class="clear" /> `;
   } else {
-    contentHtml = `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
+    contentHtml = `<div class="texte"> ${timeLine}${description} </div> <br class="clear" /> `;
   }
 
   const startDate = formatEasternWallClock(eventData.start_date);
@@ -82,7 +115,7 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
     subtype: 'mcms',
     id,
     author: '',
-    title: eventData.title || '',
+    title,
     date: startDate,
     summary: stripHtmlAndTruncate(contentHtml, 100),
     content: contentHtml,
