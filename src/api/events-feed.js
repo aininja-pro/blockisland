@@ -17,6 +17,33 @@ function slugify(title) {
     .substring(0, 80);
 }
 
+// Determine America/New_York UTC offset for a given instant (DST-aware).
+// Returns e.g. "-04:00" (EDT) or "-05:00" (EST).
+function easternOffset(date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'longOffset',
+  }).formatToParts(date);
+  const raw = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT-05:00';
+  return raw.replace(/^(GMT|UTC)/, '') || '-05:00';
+}
+
+// Event times are stored as wall-clock values in a TIMESTAMPTZ column (naive
+// datetime-local input lands with a +00:00 offset). Reinterpret the wall-clock
+// hour as Block Island local time so GoodBarber's mobile app renders correctly.
+function formatEasternWallClock(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const pad = n => String(n).padStart(2, '0');
+  const y  = d.getUTCFullYear();
+  const mo = pad(d.getUTCMonth() + 1);
+  const da = pad(d.getUTCDate());
+  const h  = pad(d.getUTCHours());
+  const mi = pad(d.getUTCMinutes());
+  const s  = pad(d.getUTCSeconds());
+  return `${y}-${mo}-${da}T${h}:${mi}:${s}${easternOffset(d)}`;
+}
+
 /**
  * Transform an event to GoodBarber event feed format.
  * @param {Object} eventData - Event from database
@@ -47,13 +74,8 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
     contentHtml = `<div class="texte"> ${contentHtml} </div> <br class="clear" /> `;
   }
 
-  // Format dates as ISO 8601 with timezone offset
-  const startDate = eventData.start_date
-    ? new Date(eventData.start_date).toISOString().replace(/\.\d{3}Z$/, '+00:00')
-    : '';
-  const endDate = eventData.end_date
-    ? new Date(eventData.end_date).toISOString().replace(/\.\d{3}Z$/, '+00:00')
-    : startDate;
+  const startDate = formatEasternWallClock(eventData.start_date);
+  const endDate = formatEasternWallClock(eventData.end_date) || startDate;
 
   return {
     type: 'event',
