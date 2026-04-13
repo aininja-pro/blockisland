@@ -325,6 +325,14 @@ export function EventForm({
               <FormControl>
                 <Input type="url" placeholder="https://example.com/image.jpg" {...field} />
               </FormControl>
+              {field.value && (
+                <img
+                  src={field.value}
+                  alt="Event thumbnail preview"
+                  className="mt-2 w-40 h-28 rounded-md object-cover border"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              )}
               <FormMessage />
             </FormItem>
           )}
