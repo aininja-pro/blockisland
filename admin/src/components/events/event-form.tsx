@@ -17,7 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { LocateFixed, Loader2 } from 'lucide-react'
+import { LocateFixed, Loader2, Upload } from 'lucide-react'
 import { Event } from '@/lib/queries/events'
 
 function parseContentBlocks(description: string | null | undefined): ContentBlock[] {
@@ -83,6 +83,7 @@ export function EventForm({
     parseContentBlocks(event?.description)
   )
   const [geocoding, setGeocoding] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const isAllDay = event?.all_day ?? false
 
@@ -109,6 +110,26 @@ export function EventForm({
   const handleSubmit = async (data: EventFormData) => {
     const descriptionJson = JSON.stringify(contentBlocks)
     await onSubmit({ ...data, description: descriptionJson })
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      form.setValue('image_url', data.url, { shouldValidate: true, shouldDirty: true })
+    } catch (error) {
+      console.error('Upload failed:', error)
+    } finally {
+      setUploading(false)
+      // Reset so selecting the same file again re-triggers onChange
+      e.target.value = ''
+    }
   }
 
   const geocodeAddress = useCallback(async () => {
@@ -323,10 +344,33 @@ export function EventForm({
             <FormItem>
               <FormLabel>Main Thumbnail Image</FormLabel>
               <FormDescription>
-                Hero image shown at the top of the event in the app. Paste a URL to an image.
+                Hero image shown at the top of the event in the app. Upload a file or paste a URL.
               </FormDescription>
               <FormControl>
-                <Input type="url" placeholder="https://example.com/image.jpg" {...field} />
+                <div className="flex gap-2">
+                  <Input type="url" placeholder="https://example.com/image.jpg" {...field} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={uploading}
+                    onClick={() => document.getElementById('event-image-upload')?.click()}
+                    title="Upload an image"
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <input
+                    id="event-image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </div>
               </FormControl>
               {field.value && (
                 <img
@@ -366,7 +410,7 @@ export function EventForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading || uploading}>
             {isLoading ? 'Saving...' : event ? 'Save Changes' : 'Create Event'}
           </Button>
         </div>
