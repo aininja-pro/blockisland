@@ -321,7 +321,10 @@ export function EventForm({
           name="image_url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Main Thumbnail Image</FormLabel>
+              <FormDescription>
+                Hero image shown at the top of the event in the app. Paste a URL to an image.
+              </FormDescription>
               <FormControl>
                 <Input type="url" placeholder="https://example.com/image.jpg" {...field} />
               </FormControl>
