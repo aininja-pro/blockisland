@@ -94,18 +94,13 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
   const titleBase = eventData.title || '';
   const title = timeLabel ? `${titleBase} — ${timeLabel}` : titleBase;
 
-  // Build content HTML with hero image + texte div (same pattern as maps feed).
-  // Prepend the ET time line inside the texte div so it sits above the description.
+  // The hero image is surfaced via `images` + `isFeatured` below, which drives
+  // GoodBarber's native event thumbnail header. Don't inject it into content
+  // too — the admin's BlockEditor photo blocks are the sanctioned way to add
+  // in-body images.
   const description = parseDescriptionToHtml(eventData.description);
   const timeLine = timeLabel ? `<p><strong>${timeLabel}</strong></p> ` : '';
-  let contentHtml;
-
-  if (imageUrl) {
-    const heroHtml = ` <div class="photo top" style="text-align:center"> <a href="${imageUrl}" target="_blank"> <img id="img-${id}" src="${imageUrl}" alt="${titleBase}" title="${titleBase}" /> </a> </div> <br class="clear" /> `;
-    contentHtml = heroHtml + `<div class="texte"> ${timeLine}${description} </div> <br class="clear" /> `;
-  } else {
-    contentHtml = `<div class="texte"> ${timeLine}${description} </div> <br class="clear" /> `;
-  }
+  const contentHtml = `<div class="texte"> ${timeLine}${description} </div> <br class="clear" /> `;
 
   const startDate = formatEasternWallClock(eventData.start_date);
   const endDate = formatEasternWallClock(eventData.end_date) || startDate;
