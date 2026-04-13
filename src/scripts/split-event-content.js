@@ -114,18 +114,39 @@ async function main() {
   if (SINGLE_ID) console.log(`Single ID: ${SINGLE_ID}`);
   console.log('---');
 
-  let query = supabase
-    .from('events')
-    .select('id, title, description')
-    .not('description', 'is', null);
-
-  if (SINGLE_ID) query = query.eq('id', SINGLE_ID);
-  if (LIMIT) query = query.limit(LIMIT);
-
-  const { data: events, error } = await query;
-  if (error) {
-    console.error('Failed to fetch events:', error.message);
-    process.exit(1);
+  // Fetch events, paginating past Supabase's 1000-row default limit
+  const events = [];
+  if (SINGLE_ID) {
+    const { data, error } = await supabase
+      .from('events')
+      .select('id, title, description')
+      .not('description', 'is', null)
+      .eq('id', SINGLE_ID);
+    if (error) {
+      console.error('Failed to fetch events:', error.message);
+      process.exit(1);
+    }
+    events.push(...(data || []));
+  } else {
+    const pageSize = 1000;
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, description')
+        .not('description', 'is', null)
+        .order('id')
+        .range(from, from + pageSize - 1);
+      if (error) {
+        console.error('Failed to fetch events:', error.message);
+        process.exit(1);
+      }
+      events.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+      from += pageSize;
+      if (LIMIT && events.length >= LIMIT) break;
+    }
+    if (LIMIT) events.splice(LIMIT);
   }
 
   console.log(`Found ${events.length} events with descriptions\n`);
@@ -147,14 +168,8 @@ async function main() {
 
     const blocks = parseHtmlToBlocks(event.description);
 
-    if (blocks.length === 0) {
-      console.log(`  SKIP (empty result): ${event.title}`);
-      skipped++;
-      continue;
-    }
-
     console.log(`  ${event.title}`);
-    console.log(`    → ${blocks.length} blocks: ${blocks.map(b => b.type).join(', ')}`);
+    console.log(`    → ${blocks.length} blocks: ${blocks.length ? blocks.map(b => b.type).join(', ') : '(empty — hero-only description, body cleared)'}`);
 
     if (DRY_RUN) {
       for (const block of blocks) {
