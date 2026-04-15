@@ -29,10 +29,8 @@ function easternOffset(date) {
 }
 
 // Format a wall-clock-stored-as-UTC timestamp into a human time range with an
-// explicit "ET" label. Returns "" for all-day events or missing start. Used to
-// surface the Block Island local time in title and content regardless of the
-// viewer's device timezone (GoodBarber's native time display always converts
-// to phone-local).
+// explicit "ET" label. Returns "" for all-day events or missing start. Used in
+// the content HTML as a bold line so the BI local time is always visible.
 function formatEtTimeRange(startIso, endIso, allDay) {
   if (allDay || !startIso) return '';
   const start = new Date(startIso);
@@ -52,6 +50,38 @@ function formatEtTimeRange(startIso, endIso, allDay) {
     start.getUTCDate() === end.getUTCDate();
   if (!sameDay) return `${startStr} ET`;
   return `${startStr} – ${fmt(end)} ET`;
+}
+
+// Compact version for the title suffix: "8–9am", "11am–5pm", "6:30–8pm".
+// Same day only; cross-day or missing end falls back to start-only "8am".
+function formatCompactTimeRange(startIso, endIso, allDay) {
+  if (allDay || !startIso) return '';
+  const start = new Date(startIso);
+  const end = endIso ? new Date(endIso) : null;
+  const compact = d => {
+    const h = d.getUTCHours();
+    const m = d.getUTCMinutes();
+    const ampm = h >= 12 ? 'pm' : 'am';
+    const h12 = h % 12 || 12;
+    return m === 0 ? `${h12}${ampm}` : `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+  };
+  const bareHour = d => {
+    const h = d.getUTCHours();
+    const m = d.getUTCMinutes();
+    const h12 = h % 12 || 12;
+    return m === 0 ? `${h12}` : `${h12}:${String(m).padStart(2, '0')}`;
+  };
+  if (!end) return compact(start);
+  const sameDay =
+    start.getUTCFullYear() === end.getUTCFullYear() &&
+    start.getUTCMonth() === end.getUTCMonth() &&
+    start.getUTCDate() === end.getUTCDate();
+  if (!sameDay) return compact(start);
+  const startAmpm = start.getUTCHours() >= 12 ? 'pm' : 'am';
+  const endAmpm = end.getUTCHours() >= 12 ? 'pm' : 'am';
+  // Drop am/pm on start when it matches end, e.g. "8–9am" instead of "8am–9am"
+  if (startAmpm === endAmpm) return `${bareHour(start)}–${compact(end)}`;
+  return `${compact(start)}–${compact(end)}`;
 }
 
 // Event times are stored as wall-clock values in a TIMESTAMPTZ column (naive
@@ -91,7 +121,9 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
   }
 
   const timeLabel = formatEtTimeRange(eventData.start_date, eventData.end_date, eventData.all_day);
-  const title = eventData.title || '';
+  const compactLabel = formatCompactTimeRange(eventData.start_date, eventData.end_date, eventData.all_day);
+  const titleBase = eventData.title || '';
+  const title = compactLabel ? `${titleBase} (${compactLabel})` : titleBase;
 
   // The hero image is surfaced via `images` + `isFeatured` below, which drives
   // GoodBarber's native event thumbnail header. Don't inject it into content
@@ -106,7 +138,7 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
 
   return {
     type: 'event',
-    subtype: 'custom',
+    subtype: 'mcms',
     id,
     author: '',
     title,
