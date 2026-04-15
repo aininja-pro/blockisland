@@ -91,8 +91,7 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
   }
 
   const timeLabel = formatEtTimeRange(eventData.start_date, eventData.end_date, eventData.all_day);
-  const titleBase = eventData.title || '';
-  const title = timeLabel ? `${titleBase} — ${timeLabel}` : titleBase;
+  const title = eventData.title || '';
 
   // The hero image is surfaced via `images` + `isFeatured` below, which drives
   // GoodBarber's native event thumbnail header. Don't inject it into content
@@ -102,8 +101,10 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
   const timeLine = timeLabel ? `<p><strong>${timeLabel}</strong></p> ` : '';
   const contentHtml = `<div class="texte"> ${timeLine}${description} </div> <br class="clear" /> `;
 
-  const startDate = formatEasternWallClock(eventData.start_date);
-  const endDate = formatEasternWallClock(eventData.end_date) || startDate;
+  const startDateIso = formatEasternWallClock(eventData.start_date);
+  const endDateIso = formatEasternWallClock(eventData.end_date) || startDateIso;
+  const startDate = Math.floor(new Date(startDateIso).getTime() / 1000);
+  const endDate = Math.floor(new Date(endDateIso).getTime() / 1000);
 
   return {
     type: 'event',
