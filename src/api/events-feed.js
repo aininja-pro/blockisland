@@ -101,10 +101,8 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
   const timeLine = timeLabel ? `<p><strong>${timeLabel}</strong></p> ` : '';
   const contentHtml = `<div class="texte"> ${timeLine}${description} </div> <br class="clear" /> `;
 
-  const startDateIso = formatEasternWallClock(eventData.start_date);
-  const endDateIso = formatEasternWallClock(eventData.end_date) || startDateIso;
-  const startDate = Math.floor(new Date(startDateIso).getTime() / 1000);
-  const endDate = Math.floor(new Date(endDateIso).getTime() / 1000);
+  const startDate = formatEasternWallClock(eventData.start_date);
+  const endDate = formatEasternWallClock(eventData.end_date) || startDate;
 
   return {
     type: 'event',
