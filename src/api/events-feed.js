@@ -106,7 +106,7 @@ function transformEventToGoodBarber(eventData, sortDate, sortId) {
 
   return {
     type: 'event',
-    subtype: 'mcms',
+    subtype: 'custom',
     id,
     author: '',
     title,
