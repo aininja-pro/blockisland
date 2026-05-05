@@ -1,0 +1,2589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BI Chamber — Staff Verification</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
+<style>
+:root{
+  --ocean:#0b3d5e;--ocean-mid:#1a6b8a;--ocean-light:#2fa8c8;
+  --teal:#22c5b0;--sand:#f5e9cc;--sand-dark:#e8d4a0;
+  --warm-white:#faf7f0;--text-dark:#1a2b38;--text-mid:#3d5a6e;--text-light:#7a9aaa;
+  --gold:#d4a94a;--gold-dark:#a07820;--green:#3a7d44;--coral:#e8614a;
+  --bg:#f0f4f8;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text-dark);min-height:100vh;}
+#app{max-width:480px;margin:0 auto;min-height:100vh;background:white;position:relative;}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ── LOGIN SCREEN ── */
+#screen-login{background:linear-gradient(160deg,var(--ocean) 0%,var(--ocean-mid) 55%,var(--teal) 100%);align-items:center;justify-content:center;padding:32px 24px;}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-island{font-size:64px;display:block;margin-bottom:12px;}
+.login-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:white;line-height:1.2;margin-bottom:4px;}
+.login-sub{font-size:13px;color:rgba(255,255,255,.65);}
+.login-card{background:white;border-radius:24px;padding:28px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.2);}
+.login-card-title{font-size:15px;font-weight:600;color:var(--text-mid);margin-bottom:16px;}
+.staff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.staff-btn{border:2px solid var(--sand-dark);border-radius:16px;padding:14px 10px;cursor:pointer;background:white;font-family:'DM Sans',sans-serif;text-align:center;transition:border-color .15s,background .15s;}
+.staff-btn:active{transform:scale(.97);}
+.staff-btn.selected{border-color:var(--ocean);background:linear-gradient(135deg,#e8f4fc,#f0f8ff);}
+.staff-avatar{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:white;margin:0 auto 8px;}
+.staff-name{font-size:13px;font-weight:700;color:var(--text-dark);}
+.staff-role{font-size:11px;color:var(--text-light);}
+.pin-section{margin-bottom:16px;}
+.pin-label{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mid);margin-bottom:8px;}
+.pin-input{width:100%;padding:16px;border:2px solid var(--sand-dark);border-radius:14px;font-size:24px;font-weight:700;letter-spacing:8px;text-align:center;font-family:monospace;color:var(--text-dark);outline:none;background:white;transition:border-color .2s;}
+.pin-input:focus{border-color:var(--ocean-light);}
+.login-btn{width:100%;background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));color:white;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.login-btn:active{opacity:.9;}
+.login-error{background:#fff0ee;border:1px solid #f4b0a0;border-radius:10px;padding:10px 14px;font-size:13px;color:var(--coral);text-align:center;margin-top:12px;display:none;}
+.login-note{font-size:11px;color:rgba(255,255,255,.5);text-align:center;margin-top:16px;}
+
+/* ── DASHBOARD ── */
+.dash-header{background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));padding:48px 24px 24px;color:white;position:relative;}
+.dash-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.dash-staff-pill{background:rgba(255,255,255,.15);border-radius:20px;padding:7px 14px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;backdrop-filter:blur(6px);}
+.dash-staff-dot{width:8px;height:8px;background:#44ff88;border-radius:50%;}
+.logout-btn{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.dash-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;margin-bottom:4px;}
+.dash-date{font-size:13px;color:rgba(255,255,255,.65);}
+.dash-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px;}
+.dash-stat{background:rgba(255,255,255,.12);border-radius:14px;padding:14px 10px;text-align:center;backdrop-filter:blur(6px);}
+.dash-stat-val{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:var(--gold);line-height:1;}
+.dash-stat-lbl{font-size:10px;color:rgba(255,255,255,.65);margin-top:3px;letter-spacing:.5px;}
+.dash-body{flex:1;padding:20px 16px 100px;overflow-y:auto;}
+.scan-cta{background:linear-gradient(135deg,var(--teal),#1aad9a);border-radius:20px;padding:24px;text-align:center;margin-bottom:20px;cursor:pointer;border:none;width:100%;font-family:'DM Sans',sans-serif;transition:transform .15s;box-shadow:0 6px 20px rgba(34,197,176,.3);}
+.scan-cta:active{transform:scale(.98);}
+.scan-icon{font-size:48px;display:block;margin-bottom:10px;}
+.scan-cta-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:white;margin-bottom:4px;}
+.scan-cta-sub{font-size:13px;color:rgba(255,255,255,.8);}
+.manual-entry-card{background:white;border-radius:18px;padding:18px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.manual-entry-title{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);margin-bottom:10px;}
+.manual-entry-row{display:flex;gap:10px;}
+.manual-input{flex:1;padding:13px 16px;border:2px solid var(--sand-dark);border-radius:12px;font-size:15px;font-family:monospace;font-weight:600;letter-spacing:2px;color:var(--text-dark);background:white;outline:none;text-transform:uppercase;}
+.manual-input:focus{border-color:var(--ocean-light);}
+.manual-btn{background:var(--ocean);color:white;border:none;border-radius:12px;padding:13px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.section-head{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text-light);margin-bottom:12px;}
+.history-item{background:white;border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.history-status{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.history-status.redeemed{background:#e8f5ec;}
+.history-status.rejected{background:#fff0ee;}
+.history-info{flex:1;min-width:0;}
+.history-name{font-weight:600;font-size:14px;color:var(--text-dark);}
+.history-meta{font-size:12px;color:var(--text-light);margin-top:2px;}
+.history-pts{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--gold-dark);}
+.empty-history{text-align:center;padding:32px;color:var(--text-light);}
+
+/* ── SCANNER ── */
+#screen-scanner{background:#000;}
+.scanner-header{position:absolute;top:0;left:0;right:0;padding:48px 20px 16px;background:linear-gradient(rgba(0,0,0,.7),transparent);z-index:10;display:flex;align-items:center;gap:12px;}
+.scanner-back{background:rgba(255,255,255,.15);border:none;color:white;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;backdrop-filter:blur(6px);}
+.scanner-title{color:white;font-weight:700;font-size:16px;}
+#scanner-video{width:100%;height:100vh;object-fit:cover;display:block;}
+.scanner-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.scan-frame{width:240px;height:240px;border:3px solid var(--teal);border-radius:20px;box-shadow:0 0 0 9999px rgba(0,0,0,.5);position:relative;}
+.scan-corner{position:absolute;width:24px;height:24px;border-color:var(--teal);border-style:solid;}
+.scan-corner.tl{top:-3px;left:-3px;border-width:4px 0 0 4px;border-radius:6px 0 0 0;}
+.scan-corner.tr{top:-3px;right:-3px;border-width:4px 4px 0 0;border-radius:0 6px 0 0;}
+.scan-corner.bl{bottom:-3px;left:-3px;border-width:0 0 4px 4px;border-radius:0 0 0 6px;}
+.scan-corner.br{bottom:-3px;right:-3px;border-width:0 4px 4px 0;border-radius:0 0 6px 0;}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal),transparent);animation:scanline 2s ease-in-out infinite;}
+@keyframes scanline{0%,100%{top:10%}50%{top:85%}}
+.scanner-hint{position:absolute;bottom:48px;left:0;right:0;text-align:center;color:rgba(255,255,255,.75);font-size:14px;font-weight:500;}
+#scanner-canvas{display:none;}
+
+/* ── VERIFICATION RESULT ── */
+#screen-result{background:var(--bg);}
+.result-header{padding:72px 24px 24px;flex-shrink:0;}
+.result-back{position:absolute;top:14px;left:16px;background:rgba(255,255,255,.2);border:none;color:white;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;backdrop-filter:blur(6px);z-index:30;}
+.result-status-icon{font-size:64px;display:block;text-align:center;margin:0 auto 12px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.15));}
+.result-status-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;text-align:center;margin-bottom:4px;color:white;}
+.result-code-chip{background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:5px 14px;font-family:monospace;font-size:13px;font-weight:700;letter-spacing:2px;display:table;margin:0 auto;}
+.result-body{flex:1;padding:16px 16px 100px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.result-user-card{background:white;border-radius:18px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.result-user-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.result-avatar{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--teal),#1aad9a);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:white;}
+.result-name{font-weight:700;font-size:18px;color:var(--text-dark);}
+.result-hunt{font-size:13px;color:var(--text-mid);margin-top:2px;}
+.result-stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+/* Photo verification */
+.photo-verify-card{background:white;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.photo-verify-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.photo-verify-title{font-size:14px;font-weight:700;color:var(--text-dark);}
+.photo-verify-progress{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;}
+.photo-verify-progress.done{background:#e8f5ec;color:var(--green);}
+.photo-verify-progress.pending{background:#fff0ee;color:var(--coral);}
+.photo-item-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg);}
+.photo-item-row:last-child{border-bottom:none;}
+.photo-item-emoji{font-size:24px;flex-shrink:0;}
+.photo-item-info{flex:1;min-width:0;}
+.photo-item-name{font-size:13px;font-weight:600;color:var(--text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.photo-item-sub{font-size:11px;color:var(--text-light);margin-top:1px;}
+.photo-verify-btns{display:flex;gap:6px;flex-shrink:0;}
+.verify-btn{border:none;border-radius:10px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:transform .1s;}
+.verify-btn:active{transform:scale(.92);}
+.verify-btn.approve{background:#e8f5ec;color:var(--green);}
+.verify-btn.approve.selected{background:var(--green);color:white;}
+.verify-btn.flag{background:#fff0ee;color:var(--coral);}
+.verify-btn.flag.selected{background:var(--coral);color:white;}
+.verify-status-pill{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.verify-instruction{background:linear-gradient(135deg,#e8f4fc,#d8ecf8);border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+.redeem-btn{flex:1;background:linear-gradient(135deg,var(--green),#2d6335);color:white;border:none;border-radius:16px;padding:18px;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 6px 20px rgba(58,125,68,.3);transition:opacity .2s;}
+.redeem-btn:disabled{opacity:.4;cursor:not-allowed;}
+.reject-btn{background:white;color:var(--coral);border:2px solid var(--coral);border-radius:16px;padding:18px 20px;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.result-stat{background:var(--bg);border-radius:12px;padding:12px;text-align:center;}
+.result-stat-val{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--ocean);}
+.result-stat-lbl{font-size:10px;color:var(--text-light);margin-top:2px;}
+.result-tier-card{border-radius:18px;padding:18px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px;}
+.result-tier-medal{font-size:44px;}
+.result-tier-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;margin-bottom:4px;}
+.result-tier-reward{font-size:13px;font-weight:500;line-height:1.4;}
+.result-photos-section{background:white;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.result-photo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;}
+.result-photo-thumb{width:100%;aspect-ratio:1;border-radius:10px;object-fit:cover;border:2px solid transparent;}
+.result-photo-thumb.verified{border-color:var(--green);}
+.result-photo-placeholder{width:100%;aspect-ratio:1;border-radius:10px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.result-action-row{display:flex;gap:10px;margin-bottom:14px;}
+.photo-check-section{background:white;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.photo-check-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.photo-check-title{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-mid);}
+.photo-check-progress{font-size:12px;font-weight:700;color:var(--ocean);background:var(--bg);border-radius:20px;padding:4px 12px;}
+.photo-check-progress.complete{background:#e8f5ec;color:var(--green);}
+.photo-item-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bg);}
+.photo-item-row:last-child{border-bottom:none;}
+.photo-item-emoji{font-size:24px;width:36px;text-align:center;flex-shrink:0;}
+.photo-item-info{flex:1;min-width:0;}
+.photo-item-name{font-size:13px;font-weight:600;color:var(--text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.photo-item-loc{font-size:11px;color:var(--text-light);}
+.photo-item-pts{font-size:11px;font-weight:600;color:var(--gold-dark);}
+.photo-verify-btn{flex-shrink:0;border:none;border-radius:10px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:transform .1s;}
+.photo-verify-btn:active{transform:scale(.93);}
+.photo-verify-btn.pending{background:var(--ocean);color:white;}
+.photo-verify-btn.approved{background:#e8f5ec;color:var(--green);}
+.photo-verify-btn.rejected{background:#fff0ee;color:var(--coral);}
+.photo-verify-icon{font-size:16px;margin-right:3px;}
+/* Override bar */
+.override-bar{background:linear-gradient(135deg,#fff8e6,#fff3d0);border:1px solid #e8d070;border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.override-text{font-size:12px;color:#7a5a00;line-height:1.4;}
+.override-btn{background:#a07820;color:white;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
+/* Photo check modal */
+#photo-modal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;max-width:480px;left:50%;transform:translateX(-50%);}
+#photo-modal.open{display:flex;}
+.photo-modal-sheet{background:white;border-radius:24px 24px 0 0;padding:24px 24px 40px;width:100%;animation:slideUp .25s ease;}
+.photo-modal-handle{width:36px;height:4px;background:var(--sand-dark);border-radius:2px;margin:0 auto 20px;}
+.photo-modal-directive{background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));border-radius:16px;padding:18px 20px;color:white;text-align:center;margin-bottom:18px;}
+.photo-modal-directive-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:8px;}
+.photo-modal-item-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;margin-bottom:4px;}
+.photo-modal-item-emoji{font-size:40px;margin-bottom:6px;display:block;}
+.photo-modal-desc{font-size:13px;color:rgba(255,255,255,.8);line-height:1.5;}
+.photo-modal-checklist{margin-bottom:18px;}
+.photo-modal-check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sand);}
+.photo-modal-check-item:last-child{border-bottom:none;}
+.check-circle{width:20px;height:20px;border-radius:50%;border:2px solid var(--sand-dark);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.check-circle.checked{background:var(--green);border-color:var(--green);color:white;}
+.photo-modal-check-text{font-size:13px;color:var(--text-dark);}
+.photo-modal-actions{display:flex;gap:10px;}
+.modal-approve-btn{flex:1;background:linear-gradient(135deg,var(--green),#2d6335);color:white;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.modal-reject-btn{background:white;color:var(--coral);border:2px solid var(--coral);border-radius:14px;padding:16px 18px;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text-dark);color:white;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:500;z-index:9999;opacity:0;transition:opacity .3s,transform .3s;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── STAFF NOTES ── */
+.notes-card{background:white;border-radius:18px;padding:18px 20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid var(--sand-dark);}
+.notes-card-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.notes-card-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.notes-card-title{font-size:14px;font-weight:700;color:var(--text-dark);}
+.notes-card-sub{font-size:11px;color:var(--text-light);margin-top:1px;}
+.notes-textarea{width:100%;padding:14px 16px;border:2px solid var(--sand-dark);border-radius:13px;font-size:14px;font-family:'DM Sans',sans-serif;resize:none;outline:none;height:90px;color:var(--text-dark);background:var(--bg);line-height:1.5;transition:border-color .2s;}
+.notes-textarea:focus{border-color:var(--ocean-light);background:white;}
+.notes-textarea::placeholder{color:var(--text-light);}
+.notes-quick-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.notes-tag{background:var(--sand);border:1px solid var(--sand-dark);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s,border-color .15s,color .15s;white-space:nowrap;}
+.notes-tag:hover{background:var(--ocean);border-color:var(--ocean);color:white;}
+
+.tier-bronze{background:linear-gradient(135deg,#fdf1e6,#fae3c8);border:1px solid #e8c49a;}
+.tier-silver{background:linear-gradient(135deg,#f2f5f8,#e4eaf0);border:1px solid #b8c8d8;}
+.tier-gold{background:linear-gradient(135deg,#fffbeb,#fff3c8);border:1px solid #e8d070;}
+.tier-platinum{background:linear-gradient(135deg,#f0f8ff,#e0f0ff);border:1px solid #90c8f0;}
+
+/* ── BOTTOM TAB NAV ── */
+.admin-tab-bar{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:white;border-top:1px solid #eef2f7;display:none;z-index:100;padding:8px 0 max(8px,env(safe-area-inset-bottom));}
+.admin-tab-bar.visible{display:flex;}
+.admin-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;cursor:pointer;border:none;background:transparent;font-family:'DM Sans',sans-serif;}
+.admin-tab-icon{font-size:22px;transition:transform .15s;}
+.admin-tab-label{font-size:10px;font-weight:600;color:#8a9bb0;letter-spacing:.3px;transition:color .15s;}
+.admin-tab.active .admin-tab-label{color:var(--ocean);}
+.admin-tab.active .admin-tab-icon{transform:scale(1.12);}
+/* ── ANALYTICS SCREEN ── */
+#screen-analytics{background:#f0f4f8;overflow-y:auto;}
+.analytics-inner{padding-bottom:90px;}
+.an-header{background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));padding:48px 20px 20px;color:white;}
+.an-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.an-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;}
+.an-sub{font-size:12px;opacity:.7;margin-top:2px;}
+.an-refresh{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.an-updated{font-size:11px;opacity:.6;margin-top:6px;}
+.an-kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px 16px 0;}
+.an-kpi{background:white;border-radius:14px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.07);}
+.an-kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#8a9bb0;margin-bottom:6px;}
+.an-kpi-value{font-size:26px;font-weight:800;color:#0b3d5e;line-height:1;}
+.an-kpi-sub{font-size:11px;color:#8a9bb0;margin-top:5px;}
+.an-kpi-trend{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;margin-top:5px;}
+.an-trend-up{background:#e8f9ee;color:#2a7d44;}
+.an-trend-neutral{background:#f0f4f8;color:#8a9bb0;}
+.an-section{padding:16px 16px 0;}
+.an-section-title{font-size:13px;font-weight:700;color:#1a2535;margin-bottom:12px;}
+.an-card{background:white;border-radius:14px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:0;}
+.an-chart-wrap{position:relative;}
+.an-table{width:100%;border-collapse:collapse;}
+.an-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8a9bb0;padding:0 0 8px;border-bottom:2px solid #f0f4f8;}
+.an-table td{padding:10px 0;border-bottom:1px solid #f7f9fc;font-size:12px;vertical-align:middle;}
+.an-table tr:last-child td{border-bottom:none;}
+.an-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;}
+.an-badge-green{background:#e8f9ee;color:#2a7d44;}
+.an-badge-blue{background:#e8f2ff;color:#1a5fa0;}
+.an-badge-gold{background:#fff8e6;color:#a07820;}
+.an-badge-gray{background:#f0f4f8;color:#8a9bb0;}
+.an-feed-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f7f9fc;}
+.an-feed-item:last-child{border-bottom:none;}
+.an-feed-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1a6b8a,#2fa8c8);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;}
+.an-feed-name{font-weight:600;font-size:12px;color:#1a2535;}
+.an-feed-meta{font-size:11px;color:#8a9bb0;margin-top:1px;}
+.an-feed-time{font-size:10px;color:#8a9bb0;margin-left:auto;flex-shrink:0;}
+.an-pb-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f7f9fc;}
+.an-pb-row:last-child{border-bottom:none;}
+.an-pb-label{font-size:12px;font-weight:500;color:#1a2535;width:120px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.an-pb-bar{flex:1;height:6px;background:#eef2f7;border-radius:3px;overflow:hidden;}
+.an-pb-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#1a6b8a,#2fa8c8);}
+.an-pb-val{font-size:11px;font-weight:700;color:#1a6b8a;width:28px;text-align:right;flex-shrink:0;}
+.an-data-note{text-align:center;font-size:11px;color:#8a9bb0;padding:12px 16px 0;}
+
+
+/* ── MANAGE SCREEN ── */
+#screen-manage{background:#f0f4f8;overflow-y:auto;}
+.mg-inner{padding-bottom:90px;}
+.mg-header{background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));padding:48px 20px 20px;color:white;}
+.mg-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;}
+.mg-sub{font-size:12px;opacity:.7;margin-top:2px;}
+.mg-section{padding:16px 16px 0;}
+.mg-section-title{font-size:13px;font-weight:700;color:#1a2535;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.mg-card{background:white;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.07);overflow:hidden;margin-bottom:0;}
+/* Hunt rotation rows */
+.mg-hunt-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #f7f9fc;transition:background .15s;}
+.mg-hunt-row:last-child{border-bottom:none;}
+.mg-hunt-emoji{font-size:24px;flex-shrink:0;}
+.mg-hunt-info{flex:1;min-width:0;}
+.mg-hunt-name{font-weight:600;font-size:13px;color:#1a2535;}
+.mg-hunt-meta{font-size:11px;color:#8a9bb0;margin-top:2px;}
+.mg-toggle{position:relative;width:44px;height:26px;flex-shrink:0;}
+.mg-toggle input{opacity:0;width:0;height:0;}
+.mg-toggle-slider{position:absolute;inset:0;background:#dde3eb;border-radius:13px;cursor:pointer;transition:.2s;}
+.mg-toggle-slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.mg-toggle input:checked+.mg-toggle-slider{background:var(--ocean);}
+.mg-toggle input:checked+.mg-toggle-slider:before{transform:translateX(18px);}
+.mg-featured-star{font-size:16px;cursor:pointer;opacity:.3;transition:opacity .15s;flex-shrink:0;}
+.mg-featured-star.on{opacity:1;}
+/* Season settings */
+.mg-field{padding:12px 16px;border-bottom:1px solid #f7f9fc;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.mg-field:last-child{border-bottom:none;}
+.mg-field-label{font-size:13px;font-weight:600;color:#1a2535;flex-shrink:0;}
+.mg-field-input{border:1.5px solid #dde3eb;border-radius:8px;padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;color:#1a2535;outline:none;flex:1;min-width:0;text-align:right;}
+.mg-field-input:focus{border-color:var(--ocean);}
+.mg-save-btn{width:calc(100% - 32px);margin:14px 16px 0;background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));color:white;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mg-save-btn:active{opacity:.9;}
+/* Item editor */
+.mg-hunt-select{width:100%;padding:12px 14px;border:1.5px solid #dde3eb;border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;color:#1a2535;background:white;outline:none;margin-bottom:14px;}
+.mg-hunt-select:focus{border-color:var(--ocean);}
+.mg-item-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f7f9fc;cursor:pointer;transition:background .1s;}
+.mg-item-row:last-child{border-bottom:none;}
+.mg-item-row:active{background:#f7f9fc;}
+.mg-item-emoji{font-size:20px;flex-shrink:0;}
+.mg-item-title{font-weight:600;font-size:13px;color:#1a2535;flex:1;}
+.mg-item-pts{font-size:11px;font-weight:700;color:#8a9bb0;flex-shrink:0;}
+.mg-item-del{font-size:16px;color:#e05a3a;cursor:pointer;padding:4px;flex-shrink:0;}
+.mg-add-btn{width:100%;padding:12px;border:2px dashed #dde3eb;border-radius:12px;background:transparent;font-size:13px;font-weight:600;color:#8a9bb0;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;transition:border-color .15s,color .15s;}
+.mg-add-btn:hover{border-color:var(--ocean);color:var(--ocean);}
+/* Edit modal */
+.mg-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:flex-end;}
+.mg-modal{background:white;border-radius:24px 24px 0 0;padding:24px 20px max(24px,env(safe-area-inset-bottom));width:100%;max-height:85vh;overflow-y:auto;}
+.mg-modal-title{font-weight:700;font-size:16px;color:#1a2535;margin-bottom:18px;}
+.mg-modal-field{margin-bottom:14px;}
+.mg-modal-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#8a9bb0;margin-bottom:5px;}
+.mg-modal-input{width:100%;padding:10px 12px;border:1.5px solid #dde3eb;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;color:#1a2535;outline:none;box-sizing:border-box;}
+.mg-modal-input:focus{border-color:var(--ocean);}
+textarea.mg-modal-input{resize:vertical;min-height:70px;}
+.mg-modal-row{display:flex;gap:10px;}
+.mg-modal-row .mg-modal-field{flex:1;}
+.mg-modal-btns{display:flex;gap:10px;margin-top:18px;}
+.mg-modal-btns button{flex:1;padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;}
+.mg-modal-cancel{background:#f0f4f8;color:#8a9bb0;}
+.mg-modal-save{background:linear-gradient(135deg,var(--ocean),var(--ocean-mid));color:white;}
+
+
+/* ── NEW HUNT CREATION ── */
+.mg-new-hunt-form{background:white;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.07);overflow:hidden;display:none;}
+.mg-new-hunt-form.open{display:block;}
+.mg-new-section-title{font-size:13px;font-weight:700;color:#1a2535;margin-bottom:12px;margin-top:20px;display:flex;align-items:center;justify-content:space-between;}
+.mg-create-btn{background:linear-gradient(135deg,#2a7d44,#3a9d54);color:white;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mg-phase-indicator{display:flex;gap:0;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1.5px solid #eef2f7;}
+.mg-phase{flex:1;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#8a9bb0;background:#f7f9fc;cursor:default;}
+.mg-phase.active{background:var(--ocean);color:white;}
+.mg-phase.done{background:#e8f9ee;color:#2a7d44;}
+.mg-color-row{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #f7f9fc;}
+.mg-color-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s;}
+.mg-color-swatch.selected{border-color:#1a2535;transform:scale(1.15);}
+.mg-publish-btn{width:calc(100% - 32px);margin:14px 16px;background:linear-gradient(135deg,#2a7d44,#3a9d54);color:white;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mg-back-btn{width:calc(100% - 32px);margin:0 16px 14px;background:#f0f4f8;color:#8a9bb0;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mg-step-label{font-size:12px;font-weight:600;color:#8a9bb0;padding:12px 16px 4px;text-transform:uppercase;letter-spacing:.6px;}
+.mg-radio-row{display:flex;gap:8px;padding:0 16px 12px;flex-wrap:wrap;}
+.mg-radio-opt{padding:7px 14px;border-radius:20px;border:1.5px solid #dde3eb;font-size:12px;font-weight:600;color:#8a9bb0;cursor:pointer;transition:all .15s;}
+.mg-radio-opt.sel{background:var(--ocean);color:white;border-color:var(--ocean);}
+/* Existing hunt list in catalog */
+.mg-catalog-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #f7f9fc;}
+.mg-catalog-item:last-child{border-bottom:none;}
+.mg-catalog-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.mg-catalog-edit-btn{margin-left:auto;background:var(--ocean);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mg-catalog-del-btn{background:#fff0ee;color:#e05a3a;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:6px;}
+
+
+/* ── HUNT DETAILS EDITOR ── */
+.hunt-details-editor{background:white;border-radius:12px;border:1.5px solid #dde3eb;overflow:hidden;margin-bottom:14px;display:none;}
+.hunt-details-editor.open{display:block;}
+.hunt-details-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f7f9fc;border-bottom:1px solid #eef2f7;cursor:pointer;}
+.hunt-details-header-title{font-size:12px;font-weight:700;color:#1a2535;display:flex;align-items:center;gap:8px;}
+.hunt-details-chevron{font-size:12px;color:#8a9bb0;transition:transform .2s;}
+.hunt-details-chevron.open{transform:rotate(180deg);}
+.hunt-details-body{padding:0;display:none;}
+.hunt-details-body.open{display:block;}
+.hd-row{display:flex;align-items:center;padding:11px 16px;border-bottom:1px solid #f7f9fc;}
+.hd-row:last-child{border-bottom:none;}
+.hd-label{font-size:12px;font-weight:600;color:#8a9bb0;width:110px;flex-shrink:0;}
+.hd-input{flex:1;border:1.5px solid #dde3eb;border-radius:8px;padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;color:#1a2535;outline:none;background:white;}
+.hd-input:focus{border-color:var(--ocean);}
+.hd-textarea{flex:1;border:1.5px solid #dde3eb;border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:#1a2535;outline:none;resize:none;background:white;line-height:1.5;}
+.hd-textarea:focus{border-color:var(--ocean);}
+.hd-radio-group{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
+.hd-radio{padding:5px 12px;border-radius:20px;border:1.5px solid #dde3eb;font-size:11px;font-weight:600;color:#8a9bb0;cursor:pointer;transition:all .15s;}
+.hd-radio.sel{background:var(--ocean);color:white;border-color:var(--ocean);}
+.hd-color-swatches{display:flex;gap:8px;flex:1;flex-wrap:wrap;}
+.hd-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s;}
+.hd-swatch.sel{border-color:#1a2535;transform:scale(1.2);}
+.hd-save-btn{width:calc(100% - 32px);margin:12px 16px 14px;background:linear-gradient(135deg,var(--ocean),#1a6b8a);color:white;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.hd-note{font-size:11px;color:#8a9bb0;text-align:center;padding:0 16px 12px;}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="app">
+
+<!-- ════════ LOGIN ════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-logo">
+    <span class="login-island">🏛️</span>
+    <div class="login-title">Chamber of Commerce<br>Staff Portal</div>
+    <div class="login-sub">Block Island Scavenger Hunt · Verification</div>
+  </div>
+  <div class="login-card">
+    <div class="login-card-title">Select your account</div>
+    <div class="staff-grid" id="staff-grid"></div>
+    <div class="pin-section">
+      <div class="pin-label">Enter PIN</div>
+      <input class="pin-input" id="pin-input" type="password" inputmode="numeric" maxlength="4" placeholder="••••" oninput="clearLoginError()">
+    </div>
+    <button class="login-btn" onclick="attemptLogin()">Sign In →</button>
+    <div class="login-error" id="login-error">Incorrect PIN. Please try again.</div>
+  </div>
+  <div class="login-note">🔒 Staff access only · Block Island App v1.0</div>
+</div>
+
+<!-- ════════ DASHBOARD ════════ -->
+<div id="screen-dashboard" class="screen">
+  <div class="dash-header">
+    <div class="dash-header-top">
+      <div class="dash-staff-pill">
+        <div class="dash-staff-dot"></div>
+        <span id="dash-staff-name">Staff</span>
+      </div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+    <div class="dash-title">Verification<br>Dashboard</div>
+    <div class="dash-date" id="dash-date"></div>
+    <div class="dash-stats">
+      <div class="dash-stat"><div class="dash-stat-val" id="dash-today">0</div><div class="dash-stat-lbl">TODAY</div></div>
+      <div class="dash-stat"><div class="dash-stat-val" id="dash-week">0</div><div class="dash-stat-lbl">THIS WEEK</div></div>
+      <div class="dash-stat"><div class="dash-stat-val" id="dash-total">0</div><div class="dash-stat-lbl">ALL TIME</div></div>
+    </div>
+  </div>
+  <div class="dash-body">
+    <button class="scan-cta" onclick="startScanner()">
+      <span class="scan-icon">📷</span>
+      <div class="scan-cta-title">Scan Hunter's QR Code</div>
+      <div class="scan-cta-sub">Tap to open camera scanner</div>
+    </button>
+    <div class="manual-entry-card">
+      <div class="manual-entry-title">⌨️ Manual Code Entry (backup)</div>
+      <div class="manual-entry-row">
+        <input class="manual-input" id="manual-code-input" type="text" placeholder="BI-WK-XXX-XXXX" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')lookupManualCode()">
+        <button class="manual-btn" onclick="lookupManualCode()">Verify →</button>
+      </div>
+    </div>
+    <div class="section-head">Recent Verifications</div>
+    <div id="history-list"></div>
+
+    <!-- DEMO CHEAT-SHEET -->
+    <div style="background:linear-gradient(135deg,#fff8e6,#fff3d0);border:2px dashed #e8d070;border-radius:18px;padding:20px;margin-top:8px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#a07820;margin-bottom:14px;">🧪 Demo Codes — Chamber Presentation</div>
+      <div id="demo-code-list"></div>
+      <div style="font-size:11px;color:#a07820;margin-top:12px;line-height:1.5;">Type any code above into the manual entry field to test each scenario. Demo codes reset when you clear browser storage.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SCANNER ════════ -->
+<div id="screen-scanner" class="screen" style="position:relative;background:#000;">
+  <div class="scanner-header">
+    <button class="scanner-back" onclick="stopScanner()">←</button>
+    <div class="scanner-title">Scan Hunter's QR Code</div>
+  </div>
+  <video id="scanner-video" autoplay playsinline muted></video>
+  <div class="scanner-overlay">
+    <div class="scan-frame">
+      <div class="scan-corner tl"></div>
+      <div class="scan-corner tr"></div>
+      <div class="scan-corner bl"></div>
+      <div class="scan-corner br"></div>
+      <div class="scan-line"></div>
+    </div>
+  </div>
+  <div class="scanner-hint">Hold camera steady over the QR code</div>
+  <canvas id="scanner-canvas"></canvas>
+</div>
+
+<!-- ════════ RESULT ════════ -->
+<div id="screen-result" class="screen">
+  <div class="result-header" id="result-header">
+    <button class="result-back" onclick="showScreen('dashboard')">←</button>
+    <span class="result-status-icon" id="result-icon">✅</span>
+    <div class="result-status-title" id="result-title">Valid Submission</div>
+    <div style="text-align:center;margin-top:8px;">
+      <div class="result-code-chip" id="result-code-chip">BI-XXXX-XXXXX</div>
+    </div>
+  </div>
+  <div class="result-body" id="result-body"></div>
+</div>
+
+<!-- ════════ PHOTO CHECK MODAL ════════ -->
+<div id="photo-modal">
+  <div class="photo-modal-sheet">
+    <div class="photo-modal-handle"></div>
+    <div class="photo-modal-directive">
+      <div class="photo-modal-directive-label">📲 Ask Hunter to Show Their Phone</div>
+      <span class="photo-modal-item-emoji" id="pm-emoji">📷</span>
+      <div class="photo-modal-item-name" id="pm-name">Item Name</div>
+      <div class="photo-modal-desc" id="pm-desc">Verify the photo matches this location and subject.</div>
+    </div>
+    <div class="photo-modal-checklist">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-light);margin-bottom:10px;">Verify the photo shows:</div>
+      <div id="pm-checklist"></div>
+    </div>
+    <div class="photo-modal-actions">
+      <button class="modal-approve-btn" onclick="approvePhoto()">✅ Photo Valid</button>
+      <button class="modal-reject-btn" onclick="rejectPhoto()">✗ Reject</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ════════ MANAGE SCREEN ════════ -->
+<div id="screen-manage" class="screen">
+  <div class="mg-inner">
+    <div class="mg-header">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.7;margin-bottom:4px;">Chamber Admin</div>
+      <div class="mg-title">Manage Hunts</div>
+      <div class="mg-sub">Rotation schedule · Hunt item editor</div>
+    </div>
+
+    <!-- Hunt Rotation -->
+    <div class="mg-section" style="margin-top:16px;">
+      <div class="mg-section-title">
+        🔄 Monthly Rotation
+        <span style="font-size:11px;font-weight:500;color:#8a9bb0;" id="mg-rotation-status">Loading…</span>
+      </div>
+      <div class="mg-card" id="mg-rotation-list"></div>
+      <div class="mg-card" style="margin-top:12px;">
+        <div class="mg-field">
+          <div class="mg-field-label">Season Label</div>
+          <input class="mg-field-input" id="mg-season-label" placeholder="e.g. Summer 2025" maxlength="30">
+        </div>
+        <div class="mg-field">
+          <div class="mg-field-label">Next Rotation</div>
+          <input class="mg-field-input" id="mg-next-rotation" type="date">
+        </div>
+      </div>
+      <button class="mg-save-btn" onclick="saveRotation()">💾 Save Rotation Settings</button>
+    </div>
+
+    <!-- Item Editor -->
+    <div class="mg-section" style="margin-top:20px;">
+      <div class="mg-section-title">✏️ Hunt Editor</div>
+      <select class="mg-hunt-select" id="mg-hunt-select" onchange="loadHuntEditor()">
+        <option value="">— Select a hunt to edit —</option>
+      </select>
+
+      <!-- Hunt Details Editor (appears when hunt selected) -->
+      <div class="hunt-details-editor" id="hd-panel">
+        <div class="hunt-details-header" onclick="toggleHdPanel()">
+          <div class="hunt-details-header-title">
+            <span id="hd-panel-emoji">🗺️</span>
+            <span>Hunt Details</span>
+            <span id="hd-changed-badge" style="display:none;background:#e8f9ee;color:#2a7d44;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;">Unsaved changes</span>
+          </div>
+          <span class="hunt-details-chevron" id="hd-chevron">▼</span>
+        </div>
+        <div class="hunt-details-body" id="hd-body">
+          <div class="hd-row">
+            <div class="hd-label">Hunt Name</div>
+            <input class="hd-input" id="hd-title" placeholder="e.g. Island Explorer" oninput="hdMarkChanged()">
+          </div>
+          <div class="hd-row">
+            <div class="hd-label">Emoji</div>
+            <input class="hd-input" id="hd-emoji" placeholder="🗺️" maxlength="4" style="width:60px;flex:0 0 60px;font-size:18px;text-align:center;" oninput="hdMarkChanged();document.getElementById('hd-panel-emoji').textContent=this.value||'🗺️'">
+          </div>
+          <div class="hd-row" style="align-items:flex-start;">
+            <div class="hd-label" style="padding-top:4px;">Description</div>
+            <textarea class="hd-textarea" id="hd-desc" rows="3" placeholder="Describe what makes this hunt unique..." oninput="hdMarkChanged()"></textarea>
+          </div>
+          <div class="hd-row">
+            <div class="hd-label">Price ($)</div>
+            <input class="hd-input" id="hd-price" type="number" step="0.01" min="0" style="width:90px;flex:0 0 90px;" oninput="hdMarkChanged()">
+          </div>
+          <div class="hd-row">
+            <div class="hd-label">Difficulty</div>
+            <div class="hd-radio-group" id="hd-difficulty-group">
+              <div class="hd-radio sel" onclick="selectHdRadio(this,'hd-difficulty-group')">Easy</div>
+              <div class="hd-radio" onclick="selectHdRadio(this,'hd-difficulty-group')">Moderate</div>
+              <div class="hd-radio" onclick="selectHdRadio(this,'hd-difficulty-group')">Hard</div>
+            </div>
+          </div>
+          <div class="hd-row">
+            <div class="hd-label">Reward At</div>
+            <div class="hd-radio-group" id="hd-threshold-group">
+              <div class="hd-radio sel" onclick="selectHdRadio(this,'hd-threshold-group')">50%</div>
+              <div class="hd-radio" onclick="selectHdRadio(this,'hd-threshold-group')">75%</div>
+              <div class="hd-radio" onclick="selectHdRadio(this,'hd-threshold-group')">100%</div>
+            </div>
+          </div>
+          <div class="hd-row">
+            <div class="hd-label">Age</div>
+            <div class="hd-radio-group" id="hd-age-group">
+              <div class="hd-radio sel" onclick="selectHdRadio(this,'hd-age-group')">All ages</div>
+              <div class="hd-radio" onclick="selectHdRadio(this,'hd-age-group')">18+</div>
+              <div class="hd-radio" onclick="selectHdRadio(this,'hd-age-group')">21+</div>
+            </div>
+          </div>
+          <div class="hd-row">
+            <div class="hd-label">Color Theme</div>
+            <div class="hd-color-swatches" id="hd-color-swatches">
+              <div class="hd-swatch sel" style="background:linear-gradient(135deg,#0b3d5e,#1a6b8a);" data-grad="linear-gradient(135deg,#0b3d5e 0%,#1a6b8a 100%)" onclick="selectHdColor(this)"></div>
+              <div class="hd-swatch" style="background:linear-gradient(135deg,#1a5c2a,#3a9d54);" data-grad="linear-gradient(135deg,#1a5c2a 0%,#3a9d54 100%)" onclick="selectHdColor(this)"></div>
+              <div class="hd-swatch" style="background:linear-gradient(135deg,#b07d12,#d4a94a);" data-grad="linear-gradient(135deg,#b07d12 0%,#d4a94a 100%)" onclick="selectHdColor(this)"></div>
+              <div class="hd-swatch" style="background:linear-gradient(135deg,#6b2fa0,#a855f7);" data-grad="linear-gradient(135deg,#6b2fa0 0%,#a855f7 100%)" onclick="selectHdColor(this)"></div>
+              <div class="hd-swatch" style="background:linear-gradient(135deg,#c0392b,#e05a3a);" data-grad="linear-gradient(135deg,#c0392b 0%,#e05a3a 100%)" onclick="selectHdColor(this)"></div>
+              <div class="hd-swatch" style="background:linear-gradient(135deg,#0e7060,#22c5b0);" data-grad="linear-gradient(135deg,#0e7060 0%,#22c5b0 100%)" onclick="selectHdColor(this)"></div>
+            </div>
+          </div>
+          <button class="hd-save-btn" onclick="saveHuntDetails()">💾 Save Hunt Details</button>
+          <div class="hd-note" id="hd-save-note"></div>
+        </div>
+      </div>
+
+      <div id="mg-item-editor" style="display:none;">
+        <div class="mg-card" id="mg-item-list"></div>
+        <button class="mg-add-btn" onclick="openItemModal(null)">＋ Add New Item</button>
+        <button class="mg-save-btn" onclick="saveHuntItems()" style="margin-top:10px;">💾 Save Hunt Items to Platform</button>
+        <div style="font-size:11px;color:#8a9bb0;text-align:center;margin-top:8px;" id="mg-save-note"></div>
+      </div>
+    </div>
+    <!-- New Hunt Creation -->
+    <div class="mg-section" style="margin-top:20px;">
+      <div class="mg-new-section-title">
+        ＋ Create New Hunt
+        <button class="mg-create-btn" onclick="toggleNewHuntForm()">＋ New Hunt</button>
+      </div>
+
+      <!-- Existing custom hunts catalog -->
+      <div id="mg-custom-catalog" style="margin-bottom:12px;"></div>
+
+      <!-- Creation form (hidden by default) -->
+      <div class="mg-new-hunt-form" id="mg-new-hunt-form">
+        <!-- Phase indicator -->
+        <div style="padding:14px 16px 0;">
+          <div class="mg-phase-indicator">
+            <div class="mg-phase active" id="nh-phase-1">1 · Details</div>
+            <div class="mg-phase" id="nh-phase-2">2 · Items</div>
+            <div class="mg-phase" id="nh-phase-3">3 · Publish</div>
+          </div>
+        </div>
+
+        <!-- Phase 1: Hunt Details -->
+        <div id="nh-details-phase">
+          <div class="mg-field">
+            <div class="mg-field-label">Hunt Name</div>
+            <input class="mg-field-input" id="nh-title" placeholder="e.g. Sunset Tour" style="text-align:left;">
+          </div>
+          <div class="mg-field">
+            <div class="mg-field-label">Emoji</div>
+            <input class="mg-field-input" id="nh-emoji" placeholder="🌅" maxlength="4" style="text-align:right;font-size:20px;">
+          </div>
+          <div class="mg-field" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <div class="mg-field-label" style="font-size:12px;font-weight:600;">Description</div>
+            <textarea class="mg-field-input" id="nh-desc" rows="3" placeholder="What makes this hunt unique…" style="text-align:left;resize:none;width:100%;box-sizing:border-box;"></textarea>
+          </div>
+          <div class="mg-step-label">Difficulty</div>
+          <div class="mg-radio-row">
+            <div class="mg-radio-opt sel" onclick="selectNhOpt(this,'nh-difficulty')">Easy</div>
+            <div class="mg-radio-opt" onclick="selectNhOpt(this,'nh-difficulty')">Moderate</div>
+            <div class="mg-radio-opt" onclick="selectNhOpt(this,'nh-difficulty')">Hard</div>
+          </div>
+          <div class="mg-step-label">Reward Threshold</div>
+          <div class="mg-radio-row">
+            <div class="mg-radio-opt sel" onclick="selectNhOpt(this,'nh-threshold')">50% of items</div>
+            <div class="mg-radio-opt" onclick="selectNhOpt(this,'nh-threshold')">75% of items</div>
+            <div class="mg-radio-opt" onclick="selectNhOpt(this,'nh-threshold')">100% of items</div>
+          </div>
+          <div class="mg-step-label">Age Restriction</div>
+          <div class="mg-radio-row">
+            <div class="mg-radio-opt sel" onclick="selectNhOpt(this,'nh-age')">All ages</div>
+            <div class="mg-radio-opt" onclick="selectNhOpt(this,'nh-age')">18+ only</div>
+            <div class="mg-radio-opt" onclick="selectNhOpt(this,'nh-age')">21+ only</div>
+          </div>
+          <div class="mg-step-label">Color Theme</div>
+          <div class="mg-color-row" id="nh-color-row">
+            <div class="mg-color-swatch selected" style="background:linear-gradient(135deg,#0b3d5e,#1a6b8a);" data-grad="linear-gradient(135deg,#0b3d5e 0%,#1a6b8a 100%)" onclick="selectNhColor(this)"></div>
+            <div class="mg-color-swatch" style="background:linear-gradient(135deg,#1a5c2a,#3a9d54);" data-grad="linear-gradient(135deg,#1a5c2a 0%,#3a9d54 100%)" onclick="selectNhColor(this)"></div>
+            <div class="mg-color-swatch" style="background:linear-gradient(135deg,#b07d12,#d4a94a);" data-grad="linear-gradient(135deg,#b07d12 0%,#d4a94a 100%)" onclick="selectNhColor(this)"></div>
+            <div class="mg-color-swatch" style="background:linear-gradient(135deg,#6b2fa0,#a855f7);" data-grad="linear-gradient(135deg,#6b2fa0 0%,#a855f7 100%)" onclick="selectNhColor(this)"></div>
+            <div class="mg-color-swatch" style="background:linear-gradient(135deg,#c0392b,#e05a3a);" data-grad="linear-gradient(135deg,#c0392b 0%,#e05a3a 100%)" onclick="selectNhColor(this)"></div>
+            <div class="mg-color-swatch" style="background:linear-gradient(135deg,#0e7060,#22c5b0);" data-grad="linear-gradient(135deg,#0e7060 0%,#22c5b0 100%)" onclick="selectNhColor(this)"></div>
+          </div>
+          <div class="mg-field">
+            <div class="mg-field-label">Price</div>
+            <input class="mg-field-input" id="nh-price" type="number" value="14.99" step="0.01" min="0">
+          </div>
+          <button class="mg-save-btn" onclick="nhNextPhase(1)" style="margin-top:8px;">Next: Add Items →</button>
+          <button class="mg-back-btn" onclick="toggleNewHuntForm()">Cancel</button>
+        </div>
+
+        <!-- Phase 2: Items -->
+        <div id="nh-items-phase" style="display:none;">
+          <div style="padding:12px 16px 0;font-size:13px;color:#8a9bb0;">Adding items to: <b id="nh-building-label" style="color:#1a2535;"></b></div>
+          <div style="padding:8px 16px 0;">
+            <div class="mg-card" id="nh-item-list"></div>
+            <button class="mg-add-btn" onclick="openNhItemModal(null)" style="margin-top:10px;">＋ Add Item</button>
+          </div>
+          <button class="mg-save-btn" onclick="nhNextPhase(2)" style="margin-top:14px;">Next: Review & Publish →</button>
+          <button class="mg-back-btn" onclick="nhNextPhase(0)">← Back to Details</button>
+        </div>
+
+        <!-- Phase 3: Review & Publish -->
+        <div id="nh-review-phase" style="display:none;padding:16px;">
+          <div id="nh-review-card" style="background:#f7f9fc;border-radius:12px;padding:16px;margin-bottom:14px;"></div>
+          <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#1a2535;margin-bottom:14px;cursor:pointer;">
+            <input type="checkbox" id="nh-add-to-rotation" checked style="width:18px;height:18px;cursor:pointer;">
+            Add to active rotation immediately
+          </label>
+          <button class="mg-publish-btn" onclick="publishNewHunt()">🚀 Create &amp; Publish Hunt</button>
+          <button class="mg-back-btn" onclick="nhNextPhase(1)">← Back to Items</button>
+        </div>
+      </div>
+    </div>
+    <div style="height:24px;"></div>
+  </div>
+</div>
+
+<!-- Item Edit Modal -->
+<div id="mg-modal-overlay" class="mg-modal-overlay" style="display:none;" onclick="if(event.target===this)closeMgModal()">
+  <div class="mg-modal">
+    <div class="mg-modal-title" id="mg-modal-title">Edit Item</div>
+    <input type="hidden" id="mg-edit-index">
+    <div class="mg-modal-row">
+      <div class="mg-modal-field" style="flex:0 0 80px;">
+        <div class="mg-modal-label">Emoji</div>
+        <input class="mg-modal-input" id="mg-edit-emoji" maxlength="4" style="text-align:center;font-size:22px;">
+      </div>
+      <div class="mg-modal-field">
+        <div class="mg-modal-label">Title</div>
+        <input class="mg-modal-input" id="mg-edit-title" placeholder="Item name">
+      </div>
+    </div>
+    <div class="mg-modal-field">
+      <div class="mg-modal-label">Location</div>
+      <input class="mg-modal-input" id="mg-edit-location" placeholder="Address or area">
+    </div>
+    <div class="mg-modal-field">
+      <div class="mg-modal-label">Description (what to photograph)</div>
+      <textarea class="mg-modal-input" id="mg-edit-desc" rows="3" placeholder="What the hunter needs to find and photograph…"></textarea>
+    </div>
+    <div class="mg-modal-field">
+      <div class="mg-modal-label">Hint</div>
+      <textarea class="mg-modal-input" id="mg-edit-hint" rows="2" placeholder="How to find it…"></textarea>
+    </div>
+    <div class="mg-modal-row">
+      <div class="mg-modal-field">
+        <div class="mg-modal-label">Points</div>
+        <input class="mg-modal-input" id="mg-edit-points" type="number" min="5" max="200" placeholder="50">
+      </div>
+      <div class="mg-modal-field">
+        <div class="mg-modal-label">Type</div>
+        <input class="mg-modal-input" id="mg-edit-type" placeholder="landmark / food / nature…">
+      </div>
+    </div>
+    <div class="mg-modal-btns">
+      <button class="mg-modal-cancel" onclick="closeMgModal()">Cancel</button>
+      <button class="mg-modal-save" onclick="saveMgItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ANALYTICS SCREEN ════════ -->
+<div id="screen-analytics" class="screen">
+  <div class="analytics-inner">
+    <div class="an-header">
+      <div class="an-header-row">
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.7;margin-bottom:4px;">Chamber Admin</div>
+          <div class="an-title">Analytics</div>
+          <div class="an-sub">Hunt performance · Revenue · Activity</div>
+        </div>
+        <button class="an-refresh" onclick="loadAnalytics()">↻ Refresh</button>
+      </div>
+      <div class="an-updated" id="an-updated">Loading…</div>
+    </div>
+    <div class="an-kpi-row" id="an-kpi-row">
+      <div class="an-kpi"><div class="an-kpi-label">Loading</div><div class="an-kpi-value">…</div></div>
+      <div class="an-kpi"><div class="an-kpi-label">Loading</div><div class="an-kpi-value">…</div></div>
+      <div class="an-kpi"><div class="an-kpi-label">Loading</div><div class="an-kpi-value">…</div></div>
+      <div class="an-kpi"><div class="an-kpi-label">Loading</div><div class="an-kpi-value">…</div></div>
+    </div>
+    <div class="an-section" style="margin-top:16px;">
+      <div class="an-section-title">📊 Hunt Popularity</div>
+      <div class="an-card" id="an-popularity-list"></div>
+    </div>
+    <div class="an-section" style="margin-top:14px;">
+      <div class="an-section-title">🗺️ Hunt Performance</div>
+      <div class="an-card">
+        <table class="an-table">
+          <thead><tr><th>Hunt</th><th>Unlocked</th><th>Rewarded</th><th>Rate</th><th>Revenue</th></tr></thead>
+          <tbody id="an-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="an-section" style="margin-top:14px;">
+      <div class="an-section-title">🏆 Recent Redemptions</div>
+      <div class="an-card" id="an-redemptions-feed"></div>
+    </div>
+    <div class="an-data-note" id="an-data-note"></div>
+  </div>
+</div>
+
+<!-- ════════ TAB BAR ════════ -->
+<div class="admin-tab-bar" id="admin-tab-bar">
+  <button class="admin-tab active" id="tab-btn-dashboard" onclick="switchAdminTab('dashboard')">
+    <span class="admin-tab-icon">📋</span>
+    <span class="admin-tab-label">Dashboard</span>
+  </button>
+  <button class="admin-tab" id="tab-btn-analytics" onclick="switchAdminTab('analytics')">
+    <span class="admin-tab-icon">📊</span>
+    <span class="admin-tab-label">Analytics</span>
+  </button>
+  <button class="admin-tab" id="tab-btn-manage" onclick="switchAdminTab('manage')">
+    <span class="admin-tab-icon">⚙️</span>
+    <span class="admin-tab-label">Manage</span>
+  </button>
+</div>
+</div><!-- /#app -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+//  PLATFORM API
+// ════════════════════════════════════════
+const SCAVENGER_API = '/api/scavenger';
+
+async function scavengerApi(path, options={}){
+  const res = await fetch(SCAVENGER_API+path, {
+    headers: {'Content-Type':'application/json', ...(options.headers||{})},
+    ...options
+  });
+  const data = await res.json().catch(()=>({stat:'error',error:'Invalid API response'}));
+  if(!res.ok || data.stat === 'error') throw new Error(data.error || 'Scavenger API request failed');
+  return data;
+}
+
+// ════════════════════════════════════════
+//  STAFF ACCOUNTS (UI colours + initials)
+//  PINs are verified by the platform API
+// ════════════════════════════════════════
+const STAFF = [
+  {id:'s1', name:'Anne Salinas',  role:'Manager', color:'#1a6b8a', initials:'AS'},
+  {id:'s2', name:'Irina Murphy',  role:'Staff',   color:'#3a7d44', initials:'IM'},
+  {id:'s3', name:'Rob Lucier',    role:'Staff',   color:'#7b3fa0', initials:'RL'},
+  {id:'s4', name:'Will Gasner',   role:'Staff',   color:'#c0392b', initials:'WG'},
+];
+
+let currentStaff   = null;
+let scannerStream  = null;
+let scannerAnimFrame = null;
+let currentResult  = null;
+
+// ════════════════════════════════════════
+//  API DATA LAYER
+//  Graceful fallback to localStorage if
+//  the platform API is offline
+// ════════════════════════════════════════
+function isPlatformApiReady(){
+  return true;
+}
+
+async function getRedemptions(){
+  if(isPlatformApiReady()){
+    try{
+      const res = await scavengerApi('/redemptions');
+      return (res.redemptions||[]).map(r=>({
+        code:r.code,
+        userName:r.hunter_name,
+        huntName:r.hunt_title,
+        huntId:r.hunt_id,
+        pts:r.points_earned,
+        tier:r.tier,
+        staffId:r.staff_id,
+        staffName:r.redeemed_by,
+        notes:r.staff_notes,
+        status:r.status,
+        ts:r.redeemed_at||r.updated_at
+      }));
+    }catch(e){ console.warn('API read failed, using local cache'); }
+  }
+  try{ return JSON.parse(localStorage.getItem('bi_redemptions')||'[]'); }catch(e){ return []; }
+}
+
+async function saveRedemption(record){
+  // Always write to localStorage as instant local cache
+  try{
+    const list = JSON.parse(localStorage.getItem('bi_redemptions')||'[]');
+    list.unshift(record);
+    localStorage.setItem('bi_redemptions', JSON.stringify(list.slice(0,200)));
+  }catch(e){}
+  // Write to platform API (source of truth)
+  if(isPlatformApiReady()){
+    try{
+      await scavengerApi('/redemptions/'+encodeURIComponent(record.code)+'/redeem',{
+        method:'POST',
+        body:JSON.stringify(record)
+      });
+    }catch(e){ console.warn('API write failed — saved locally only:', e); }
+  }
+}
+
+async function isRedeemed(code){
+  if(isPlatformApiReady()){
+    try{
+      const res = await scavengerApi('/redemptions/'+encodeURIComponent(code));
+      return res.redemption && res.redemption.status === 'redeemed';
+    }catch(e){ console.warn('API check failed, falling back to local'); }
+  }
+  try{
+    return JSON.parse(localStorage.getItem('bi_redemptions')||'[]')
+      .some(r=>r.code===code && r.status==='redeemed');
+  }catch(e){ return false; }
+}
+
+async function verifyStaffPin(staffId, pin){
+  if(isPlatformApiReady()){
+    try{
+      const res = await scavengerApi('/staff/auth',{
+        method:'POST',
+        body:JSON.stringify({staffId,pin})
+      });
+      if(res.staff){
+        currentStaff = {...(STAFF.find(s=>s.id===staffId)||{}), ...res.staff};
+        return true;
+      }
+    }catch(e){ console.warn('API staff check failed:', e); }
+  }
+  return false;
+}
+
+async function getStaffMeta(staffId){
+  return currentStaff?.id===staffId ? currentStaff : null;
+}
+
+// ════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='dashboard') refreshDashboard();
+  if(id==='analytics') loadAnalytics();
+  if(id==='manage') loadManage();
+  // Show tab bar only when on main logged-in screens
+  const tabBar = document.getElementById('admin-tab-bar');
+  const tabScreens = ['dashboard','analytics','manage'];
+  tabBar.classList.toggle('visible', tabScreens.includes(id));
+  // Update active tab
+  ['dashboard','analytics','manage'].forEach(t=>{
+    const btn=document.getElementById('tab-btn-'+t);
+    if(btn) btn.classList.toggle('active', t===id);
+  });
+}
+
+function switchAdminTab(tab){
+  showScreen(tab);
+}
+
+// ════════════════════════════════════════
+//  LOGIN
+// ════════════════════════════════════════
+function renderStaffGrid(){
+  const grid = document.getElementById('staff-grid');
+  grid.innerHTML = '';
+  STAFF.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.className = 'staff-btn';
+    btn.id = 'staff-btn-'+s.id;
+    btn.innerHTML = `
+      <div class="staff-avatar" style="background:${s.color};">${s.initials}</div>
+      <div class="staff-name">${s.name}</div>
+      <div class="staff-role">${s.role}</div>`;
+    btn.onclick = ()=>selectStaff(s.id);
+    grid.appendChild(btn);
+  });
+}
+
+function selectStaff(id){
+  document.querySelectorAll('.staff-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('staff-btn-'+id).classList.add('selected');
+  currentStaff = STAFF.find(s=>s.id===id);
+  document.getElementById('pin-input').focus();
+}
+
+function clearLoginError(){
+  document.getElementById('login-error').style.display='none';
+}
+
+async function attemptLogin(){
+  if(!currentStaff){ showToast('Please select your account'); return; }
+  const pin = document.getElementById('pin-input').value;
+  const btn = document.querySelector('.login-btn');
+
+  // Show loading state
+  btn.textContent='Verifying…'; btn.disabled=true;
+
+  const valid = await verifyStaffPin(currentStaff.id, pin);
+
+  btn.textContent='Sign In →'; btn.disabled=false;
+
+  if(valid){
+    // Fetch latest staff meta from the API (role, name may have changed)
+    const meta = await getStaffMeta(currentStaff.id);
+    if(meta) currentStaff = {...currentStaff, ...meta};
+
+    sessionStorage.setItem('bi_staff', JSON.stringify(currentStaff));
+    document.getElementById('pin-input').value='';
+
+    showScreen('dashboard');
+  } else {
+    document.getElementById('login-error').style.display='block';
+    document.getElementById('pin-input').value='';
+    document.getElementById('pin-input').focus();
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('bi_staff');
+  currentStaff=null;
+  document.querySelectorAll('.staff-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('pin-input').value='';
+  showScreen('login');
+}
+
+// ════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════
+async function refreshDashboard(){
+  const staff = currentStaff || JSON.parse(sessionStorage.getItem('bi_staff')||'null');
+  if(staff) document.getElementById('dash-staff-name').textContent=staff.name;
+
+  const now = new Date();
+  document.getElementById('dash-date').textContent =
+    now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  // Show loading placeholders
+  ['dash-today','dash-week','dash-total'].forEach(id=>{
+    document.getElementById(id).textContent='…';
+  });
+
+  const all = await getRedemptions();
+  const todayStr = now.toDateString();
+  const weekAgo  = now.getTime() - 7*24*3600000;
+
+  document.getElementById('dash-today').textContent =
+    all.filter(r=>r.ts && new Date(r.ts.seconds?r.ts.seconds*1000:r.ts).toDateString()===todayStr).length;
+  document.getElementById('dash-week').textContent =
+    all.filter(r=>r.ts && (r.ts.seconds?r.ts.seconds*1000:r.ts)>weekAgo).length;
+  document.getElementById('dash-total').textContent = all.length;
+
+  renderHistory(all);
+  renderDemoCodes();
+}
+
+function renderDemoCodes(){
+  const container = document.getElementById('demo-code-list');
+  if(!container) return;
+  const scenarios = [
+    {code:'BI-WK-SAR2B4-X7K9', label:'✅ Full Completion — Reward Earned', sub:"Sarah Johnson · Island Explorer · 7/7 items · 410pts", badge:'Swag Bag', badgeColor:'#3a7d44'},
+    {code:'BI-MO-MCH3C5-P2M8', label:'✅ Full Completion — Reward Earned', sub:'Mike Chen · Grand Circuit · 11/11 items · 820pts', badge:'Swag Bag', badgeColor:'#1a6b8a'},
+    {code:'BI-EV-EMW4D6-Q3N7', label:'✅ Full Completion — Reward Earned', sub:'Emma Wilson · Thrill Seeker · 8/8 items', badge:'Swag Bag', badgeColor:'#7b3fa0'},
+    {code:'BI-WK-TBR5E7-R4O6', label:'❌ Incomplete — No Reward', sub:"Tom Brown · Island Explorer · 3/7 items · 185pts", badge:'No Reward', badgeColor:'#c0392b'},
+    {code:'BI-MO-ALG6F8-S5P5', label:'⚠️ Already Redeemed (fraud demo)', sub:'Alex Green · Grand Circuit · 9/11 items', badge:'REDEEMED', badgeColor:'#c0392b'},
+  ];
+  container.innerHTML = scenarios.map(s=>`
+    <div style="background:white;border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.06);"
+         onclick="document.getElementById('manual-code-input').value='${s.code}';document.querySelector('.manual-entry-card').scrollIntoView({behavior:'smooth'});showToast('Code filled in ✓');">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:2px;">${s.label}</div>
+        <div style="font-family:monospace;font-size:12px;font-weight:600;color:var(--ocean);margin-bottom:3px;">${s.code}</div>
+        <div style="font-size:11px;color:var(--text-light);">${s.sub}</div>
+      </div>
+      <div style="background:${s.badgeColor};color:white;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${s.badge}</div>
+    </div>`).join('');
+}
+
+function renderHistory(all){
+  const list = document.getElementById('history-list');
+  const items = (all||[]).slice(0,10);
+  if(items.length===0){
+    list.innerHTML=`<div class="empty-history"><div style="font-size:36px;margin-bottom:8px;">📋</div><div style="font-weight:600;color:var(--text-dark);margin-bottom:4px;">No verifications yet</div><div style="font-size:12px;">Scan a hunter's QR code to get started</div></div>`;
+    return;
+  }
+  list.innerHTML='';
+  items.forEach(r=>{
+    // Handle both legacy timestamp objects and plain ms numbers
+    const tsMs = r.ts?.seconds ? r.ts.seconds*1000 : (r.ts||Date.now());
+    const d=new Date(tsMs);
+    const timeStr=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const dateStr=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const item=document.createElement('div');
+    item.className='history-item';
+    item.style='cursor:pointer;';
+    item.innerHTML=`
+      <div class="history-status ${r.status}">
+        ${r.status==='redeemed'?'✅':'❌'}
+      </div>
+      <div class="history-info">
+        <div class="history-name">${r.userName||'Unknown'}</div>
+        <div class="history-meta">${r.huntName||'Hunt'} · ${r.tier||''} · ${dateStr} ${timeStr} · ${r.staffName||''}</div>
+      </div>
+      <div class="history-pts">${r.pts||0}<div style="font-size:10px;color:var(--text-light);font-family:'DM Sans',sans-serif;font-weight:400;">pts</div></div>`;
+    item.onclick=async()=>{ currentResult=r; await renderResult(r); showScreen('result'); };
+    list.appendChild(item);
+  });
+}
+
+// ════════════════════════════════════════
+//  QR SCANNER
+// ════════════════════════════════════════
+async function startScanner(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    scannerStream=stream;
+    const video=document.getElementById('scanner-video');
+    video.srcObject=stream;
+    showScreen('scanner');
+    video.addEventListener('loadeddata',()=>requestAnimationFrame(scanFrame),{once:true});
+  }catch(e){
+    showToast('Camera not available — use manual entry');
+    document.getElementById('manual-code-input').focus();
+  }
+}
+
+function scanFrame(){
+  const video=document.getElementById('scanner-video');
+  const canvas=document.getElementById('scanner-canvas');
+  if(!scannerStream||video.readyState<2){ scannerAnimFrame=requestAnimationFrame(scanFrame); return; }
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0);
+  const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});
+  if(code){
+    stopScanner();
+    processQRData(code.data);
+  } else {
+    scannerAnimFrame=requestAnimationFrame(scanFrame);
+  }
+}
+
+function stopScanner(){
+  if(scannerStream){ scannerStream.getTracks().forEach(t=>t.stop()); scannerStream=null; }
+  if(scannerAnimFrame){ cancelAnimationFrame(scannerAnimFrame); scannerAnimFrame=null; }
+  showScreen('dashboard');
+}
+
+// ════════════════════════════════════════
+//  DEMO CODES  (pre-seeded for Chamber demos)
+//  In production these come from the platform API
+// ════════════════════════════════════════
+const DEMO_CODES = {
+  'BI-WK-SAR2B4-X7K9': {
+    v:1, code:'BI-WK-SAR2B4-X7K9',
+    name:'Sarah Johnson', hunt:"The Seafarer's Challenge",
+    huntId:'weekly-current', type:'weekly',
+    pts:410, done:7, total:7, photos:7,
+    tier:'BI Hunter Swag Bag', reward:'BI Hunter Swag Bag — collect at the Block Island Chamber of Commerce',
+    ts: Date.now() - 1000*60*47,
+    _demo:true,
+    completedItems:[
+      {emoji:'🚢',title:'Ferry Leaving Old Harbor',location:'Old Harbor dock',pts:60},
+      {emoji:'🍺',title:"The Oar's Oar Collection",location:'The Oar, New Harbor',pts:65},
+      {emoji:'🎣',title:'Fishing Vessel at New Harbor',location:'Great Salt Pond Marina',pts:70},
+      {emoji:'🦞',title:'Lobster Trap on Land',location:'New Harbor dock',pts:60},
+      {emoji:'⛵',title:'Breakwater from Water Side',location:'Old Harbor',pts:70},
+      {emoji:'🌅',title:'Great Salt Pond Sunset',location:'New Harbor',pts:80},
+      {emoji:'🗿',title:'Adrian Block Tribute',location:'Old Harbor area',pts:75},
+    ]
+  },
+  'BI-MO-MCH3C5-P2M8': {
+    v:1, code:'BI-MO-MCH3C5-P2M8',
+    name:'Mike Chen', hunt:'Grand Island Circuit',
+    huntId:'monthly-current', type:'monthly',
+    pts:820, done:11, total:11, photos:10,
+    tier:'BI Hunter Swag Bag', reward:'BI Hunter Swag Bag — collect at the Block Island Chamber of Commerce',
+    ts: Date.now() - 1000*60*130,
+    _demo:true,
+    completedItems:[
+      {emoji:'💡',title:'North Light',location:'Sandy Point, north tip',pts:80},
+      {emoji:'🪨',title:"Settler's Rock",location:'North end',pts:65},
+      {emoji:'🌿',title:'Clay Head Overlook',location:'East coast',pts:80},
+      {emoji:'🏖️',title:'Mansion Beach',location:'Northeast coast',pts:70},
+      {emoji:'🦒',title:'1661 Farm Animal',location:'Spring St',pts:65},
+      {emoji:'🏛️',title:'Historical Society',location:'Old Town Rd',pts:60},
+      {emoji:'🌀',title:'Sacred Labyrinth',location:'Corn Neck Rd',pts:60},
+      {emoji:'🌿',title:"Rodman's Hollow",location:'Coonymus Rd',pts:75},
+      {emoji:'🧗',title:'Mohegan Bluffs Beach',location:'Southeast coast',pts:90},
+      {emoji:'🔭',title:'Southeast Lighthouse',location:'Spring St',pts:80},
+      {emoji:'🌅',title:'Great Salt Pond Sunset',location:'New Harbor',pts:95},
+    ]
+  },
+  'BI-EV-EMW4D6-Q3N7': {
+    v:1, code:'BI-EV-EMW4D6-Q3N7',
+    name:'Emma Wilson', hunt:'⚡ Spring Sprint: Island Champion',
+    huntId:'event-spring-sprint', type:'event',
+    pts:600, done:8, total:8, photos:8,
+    tier:'BI Hunter Swag Bag', reward:'BI Hunter Swag Bag — collect at the Block Island Chamber of Commerce',
+    ts: Date.now() - 1000*60*22,
+    elapsedTime:'1h 52m',
+    _demo:true,
+    completedItems:[
+      {emoji:'💡',title:'North Light',location:'Sandy Point — FAR NORTH',pts:75},
+      {emoji:'🪨',title:"Settler's Rock",location:'Near North Light',pts:60},
+      {emoji:'🌿',title:'Clay Head Overlook',location:'East coast',pts:75},
+      {emoji:'🦒',title:'1661 Farm — Any Animal',location:'Spring St',pts:65},
+      {emoji:'⚓',title:'Old Harbor Dock',location:'Water St',pts:55},
+      {emoji:'🧗',title:'Mohegan Bluffs Beach',location:'Southeast — FAR SOUTH',pts:100},
+      {emoji:'🔭',title:'Southeast Lighthouse',location:'Spring St',pts:70},
+      {emoji:'🌅',title:'Great Salt Pond Finish',location:'New Harbor — WEST SIDE',pts:100},
+    ]
+  },
+  'BI-WK-TBR5E7-R4O6': {
+    v:1, code:'BI-WK-TBR5E7-R4O6',
+    name:'Tom Brown', hunt:"The Seafarer's Challenge",
+    huntId:'weekly-current', type:'weekly',
+    pts:185, done:3, total:7, photos:3,
+    tier:'No Reward', reward:'Hunt incomplete — must finish all stops to earn the swag bag',
+    ts: Date.now() - 1000*60*200,
+    _demo:true,
+    completedItems:[
+      {emoji:'🚢',title:'Ferry Leaving Old Harbor',location:'Old Harbor dock',pts:60},
+      {emoji:'🍺',title:"The Oar's Oar Collection",location:'The Oar, New Harbor',pts:65},
+      {emoji:'🌅',title:'Great Salt Pond Sunset',location:'New Harbor',pts:80},
+    ]
+  },
+  'BI-MO-ALG6F8-S5P5': {
+    v:1, code:'BI-MO-ALG6F8-S5P5',
+    name:'Alex Green', hunt:'Grand Island Circuit',
+    huntId:'monthly-current', type:'monthly',
+    pts:650, done:9, total:11, photos:9,
+    tier:'BI Hunter Swag Bag', reward:'BI Hunter Swag Bag — collect at the Block Island Chamber of Commerce',
+    ts: Date.now() - 1000*60*60*26,
+    _demo:true, _alreadyRedeemed:true,
+    completedItems:[
+      {emoji:'💡',title:'North Light',location:'Sandy Point',pts:80},
+      {emoji:'🪨',title:"Settler's Rock",location:'North end',pts:65},
+      {emoji:'🌿',title:'Clay Head Overlook',location:'East coast',pts:80},
+      {emoji:'🏖️',title:'Mansion Beach',location:'Northeast coast',pts:70},
+      {emoji:'🦒',title:'1661 Farm Animal',location:'Spring St',pts:65},
+      {emoji:'🏛️',title:'Historical Society',location:'Old Town Rd',pts:60},
+      {emoji:'🌀',title:'Sacred Labyrinth',location:'Corn Neck Rd',pts:60},
+      {emoji:'🌿',title:"Rodman's Hollow",location:'Coonymus Rd',pts:75},
+      {emoji:'🧗',title:'Mohegan Bluffs Beach',location:'Southeast coast',pts:90},
+    ]
+  },
+};
+
+// ════════════════════════════════════════
+//  MANUAL CODE ENTRY
+// ════════════════════════════════════════
+async function lookupManualCode(){
+  const raw=document.getElementById('manual-code-input').value.trim().toUpperCase();
+  if(!raw){ showToast('Please enter a verification code'); return; }
+  document.getElementById('manual-code-input').value='';
+
+  if(DEMO_CODES[raw]){
+    const demo=DEMO_CODES[raw];
+    if(demo._alreadyRedeemed && !(await isRedeemed(raw))){
+      await saveRedemption({
+        code:raw, userName:demo.name, huntName:demo.hunt,
+        pts:demo.pts, tier:demo.tier, reward:demo.reward,
+        staffId:'demo', staffName:'Demo Staff',
+        ts:demo.ts - 1000*60*30, status:'redeemed'
+      });
+    }
+    currentResult=demo;
+    await renderResult(demo);
+    showScreen('result');
+    return;
+  }
+  await processQRData(raw);
+}
+
+// ════════════════════════════════════════
+//  PROCESS RESULT
+// ════════════════════════════════════════
+async function processQRData(raw){
+  let data;
+  try{
+    data=JSON.parse(raw);
+    if(!data.code) throw new Error('no code');
+  }catch(e){
+    data={v:0,code:raw,name:'—',hunt:'Unknown Hunt',pts:0,done:0,total:0,tier:'—',reward:'Present code at Chamber',ts:Date.now(),_rawCode:true};
+  }
+  currentResult=data;
+  await renderResult(data);
+  showScreen('result');
+}
+
+// ════════════════════════════════════════
+//  PHOTO VERIFICATION STATE
+// ════════════════════════════════════════
+let photoVerifyState = {}; // itemIndex -> 'pending'|'approved'|'rejected'
+let currentPhotoIndex = null;
+let overrideGranted = false;
+
+function initPhotoVerifyState(items){
+  photoVerifyState = {};
+  overrideGranted = false;
+  (items||[]).forEach((_,i)=>{ photoVerifyState[i]='pending'; });
+}
+
+function getVerifyStats(items){
+  const total=(items||[]).length;
+  const approved=Object.values(photoVerifyState).filter(v=>v==='approved').length;
+  const rejected=Object.values(photoVerifyState).filter(v=>v==='rejected').length;
+  const pending=total-approved-rejected;
+  return {total,approved,rejected,pending};
+}
+
+function allPhotosResolved(items){
+  return Object.values(photoVerifyState).every(v=>v!=='pending');
+}
+
+// ════════════════════════════════════════
+//  RENDER RESULT
+// ════════════════════════════════════════
+async function renderResult(data){
+  const alreadyRedeemed = await isRedeemed(data.code);
+  const staff=currentStaff||JSON.parse(sessionStorage.getItem('bi_staff')||'{}');
+
+  // Init photo verify state from items
+  if(data.completedItems) initPhotoVerifyState(data.completedItems);
+
+  // Header colour
+  const header=document.getElementById('result-header');
+  header.style.background=alreadyRedeemed
+    ?'linear-gradient(135deg,#c0392b,#922b21)'
+    :'linear-gradient(135deg,#0b3d5e,#1a6b8a)';
+  document.getElementById('result-icon').textContent=alreadyRedeemed?'⚠️':'✅';
+  document.getElementById('result-title').textContent=alreadyRedeemed?'Already Redeemed':'Valid Submission';
+  document.getElementById('result-code-chip').textContent=data.code;
+
+  const body=document.getElementById('result-body');
+  const initials=(data.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const tierColorMap={'Explorer':'tier-bronze','Adventurer':'tier-silver','Islander':'tier-gold','Champion':'tier-platinum','Grand Circuit Champion':'tier-platinum','Sprint Finisher':'tier-bronze'};
+  const tierColor=tierColorMap[data.tier]||'tier-bronze';
+
+  body.innerHTML=`
+    ${alreadyRedeemed?`
+    <div class="already-redeemed-banner">
+      <span style="font-size:32px;">⚠️</span>
+      <div><div style="font-weight:700;font-size:15px;color:var(--coral);">Code Already Redeemed</div>
+      <div style="font-size:13px;color:var(--text-mid);margin-top:3px;">This reward was already claimed. Do not issue again.</div></div>
+    </div>`:''}
+
+    <!-- Hunter info -->
+    <div class="result-user-card">
+      <div class="result-user-row">
+        <div class="result-avatar">${initials}</div>
+        <div>
+          <div class="result-name">${data.name||'Unknown'}</div>
+          <div class="result-hunt">${data.hunt||'Unknown Hunt'}${data.type?' · '+data.type.charAt(0).toUpperCase()+data.type.slice(1)+' Hunt':''}</div>
+        </div>
+      </div>
+      <div class="result-stats-grid">
+        <div class="result-stat"><div class="result-stat-val">${data.pts||0}</div><div class="result-stat-lbl">POINTS</div></div>
+        <div class="result-stat"><div class="result-stat-val">${data.done||0}/${data.total||0}</div><div class="result-stat-lbl">ITEMS</div></div>
+        <div class="result-stat"><div class="result-stat-val">${data.photos||0}</div><div class="result-stat-lbl">PHOTOS</div></div>
+      </div>
+      ${data.elapsedTime?`<div style="margin-top:12px;background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text-mid);">⏱ Completion time: <strong>${data.elapsedTime}</strong></div>`:''}
+    </div>
+
+    <!-- Reward tier -->
+    <div class="result-tier-card ${tierColor}">
+      <div class="result-tier-medal">${getTierMedal(data.tier)}</div>
+      <div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text-light);margin-bottom:4px;">REWARD TO ISSUE</div>
+        <div class="result-tier-name">${data.tier||'—'}</div>
+        <div class="result-tier-reward">${data.reward||'Verify with hunt details'}</div>
+      </div>
+    </div>
+
+    ${data._manualEntry||data._rawCode?`
+    <div style="background:#fff8e6;border:1px solid #ffe9a0;border-radius:14px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#7a5a00;">
+      ⚠️ <strong>Manual entry</strong> — limited data available. Ask hunter to show their full certificate screen for photo verification.
+    </div>`:''}
+
+    <!-- Photo verification checklist -->
+    ${data.completedItems&&data.completedItems.length>0?`
+    <div class="photo-check-section" id="photo-check-section">
+      <div class="photo-check-header">
+        <div class="photo-check-title">📸 Photo Verification</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="photo-check-progress" id="photo-check-progress">0/${data.completedItems.length} verified</div>
+          <button onclick="verifyAllPhotos()" style="background:linear-gradient(135deg,#2a7d44,#3a9d54);color:white;border:none;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">✅ Verify All</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:14px;line-height:1.5;">
+        Ask the hunter to show each photo on their phone. Tap <strong>Verify →</strong> on each item, or tap <strong>Verify All</strong> to approve everything at once.
+      </div>
+      <div id="photo-items-list"></div>
+    </div>
+
+    <div class="override-bar" id="override-bar" style="display:none;">
+      <div class="override-text">⚠️ Some photos unverified. Manager can override to proceed with notes.</div>
+      <button class="override-btn" onclick="grantOverride()">Override</button>
+    </div>`:''}
+
+    <!-- Staff notes -->
+    <div class="notes-card">
+      <div class="notes-card-header">
+        <div class="notes-card-icon">📝</div>
+        <div>
+          <div class="notes-card-title">Staff Notes</div>
+          <div class="notes-card-sub">Optional — logged with this verification record</div>
+        </div>
+      </div>
+      <textarea class="notes-textarea" id="staff-notes" placeholder="Add any notes about this redemption, photo quality, or flagged items…"></textarea>
+      <div class="notes-quick-tags">
+        <button class="notes-tag" onclick="appendNote('All photos verified in person')">✅ Photos verified</button>
+        <button class="notes-tag" onclick="appendNote('Photo quality was low but accepted')">⚠️ Low quality</button>
+        <button class="notes-tag" onclick="appendNote('Receipt date confirmed matches today')">🧾 Receipt confirmed</button>
+        <button class="notes-tag" onclick="appendNote('Hunter was cooperative and friendly')">👍 No issues</button>
+        <button class="notes-tag" onclick="appendNote('Manager override applied')">🔓 Override used</button>
+      </div>
+    </div>
+
+    <!-- Timestamp / staff -->
+    <div style="background:white;border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);font-size:13px;color:var(--text-mid);">
+      🕐 Verified: ${new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}
+      &nbsp;·&nbsp; 👤 ${staff.name||'Staff'}
+    </div>
+
+    <!-- Actions -->
+    ${!alreadyRedeemed?`
+    <div class="result-action-row">
+      <button class="redeem-btn" id="redeem-main-btn" onclick="markRedeemed()" style="opacity:.4;cursor:not-allowed;" disabled>
+        ✅ Mark Redeemed & Issue Reward
+      </button>
+      <button class="reject-btn" onclick="markRejected()">✗</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-light);text-align:center;margin-bottom:14px;" id="redeem-hint">
+      ${data.completedItems&&data.completedItems.length>0?'Complete photo verification above to enable':''}
+    </div>`:`
+    <button onclick="showScreen('dashboard')" style="width:100%;background:var(--ocean);color:white;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">← Back to Dashboard</button>
+    `}`;
+
+  // Render the photo items list
+  if(data.completedItems&&data.completedItems.length>0) renderPhotoItemsList(data);
+}
+
+// ════════════════════════════════════════
+//  PHOTO ITEMS LIST
+// ════════════════════════════════════════
+function renderPhotoItemsList(data){
+  const list=document.getElementById('photo-items-list');
+  if(!list) return;
+  list.innerHTML='';
+  data.completedItems.forEach((item,i)=>{
+    const status=photoVerifyState[i]||'pending';
+    const row=document.createElement('div');
+    row.className='photo-item-row';
+    row.id=`photo-row-${i}`;
+    const btnClass=status==='approved'?'approved':status==='rejected'?'rejected':'pending';
+    const btnLabel=status==='approved'?'✅ OK':status==='rejected'?'✗ Fail':'Verify →';
+    row.innerHTML=`
+      <div class="photo-item-emoji">${item.emoji}</div>
+      <div class="photo-item-info">
+        <div class="photo-item-name">${item.title}</div>
+        <div class="photo-item-loc">📍 ${item.location}</div>
+        <div class="photo-item-pts">+${item.pts} pts</div>
+      </div>
+      <button class="photo-verify-btn ${btnClass}" onclick="openPhotoModal(${i})">${btnLabel}</button>`;
+    list.appendChild(row);
+  });
+  updateVerifyProgress(data);
+}
+
+function updateVerifyProgress(data){
+  const stats=getVerifyStats(data.completedItems);
+  const progressEl=document.getElementById('photo-check-progress');
+  const redeemBtn=document.getElementById('redeem-main-btn');
+  const hintEl=document.getElementById('redeem-hint');
+  const overrideBar=document.getElementById('override-bar');
+
+  if(progressEl){
+    progressEl.textContent=`${stats.approved}/${stats.total} verified`;
+    progressEl.className='photo-check-progress'+(stats.approved===stats.total?' complete':'');
+  }
+
+  const canRedeem=overrideGranted||(stats.approved===stats.total&&stats.total>0)||(stats.total===0);
+
+  if(redeemBtn){
+    redeemBtn.disabled=!canRedeem;
+    redeemBtn.style.opacity=canRedeem?'1':'.4';
+    redeemBtn.style.cursor=canRedeem?'pointer':'not-allowed';
+  }
+  if(hintEl){
+    if(canRedeem) hintEl.textContent='All photos verified — ready to issue reward!';
+    else if(stats.rejected>0) hintEl.textContent=`${stats.rejected} photo(s) flagged · ${stats.pending} still pending`;
+    else hintEl.textContent=`${stats.pending} photo(s) still need verification`;
+  }
+  // Show override option if there are rejected/pending items and manager is logged in
+  if(overrideBar){
+    const staff=currentStaff||JSON.parse(sessionStorage.getItem('bi_staff')||'{}');
+    overrideBar.style.display=(!canRedeem&&(stats.rejected>0||stats.pending>0))&&staff.role==='Manager'?'flex':'none';
+  }
+}
+
+function grantOverride(){
+  overrideGranted=true;
+  updateVerifyProgress(currentResult);
+  showToast('Override granted — proceed with caution');
+}
+
+// ════════════════════════════════════════
+//  PHOTO MODAL
+// ════════════════════════════════════════
+// What to look for when verifying each item type
+const VERIFY_CHECKLIST = {
+  landmark:['Correct landmark is clearly visible','Photo taken on Block Island (not Google)','Hunter appears to be physically present'],
+  maritime:['Correct maritime subject shown','Photo taken at the stated harbor/dock','Visible water/boats match location'],
+  nature:  ['Correct natural feature shown','Taken outdoors on Block Island','Weather/season matches today'],
+  historic:['Correct historic site or marker','Plaque or building clearly legible','Not a screen capture of a website'],
+  beach:   ['Ocean/beach visible in photo','Location matches stated beach','Not a stock photo'],
+  wildlife:['Correct animal or wildlife shown','Appears to be live/in-person photo','Taken on Block Island'],
+  scenic:  ['Scenic view matches the location','Photo taken today (check lighting)','Not reused from a previous visit'],
+  food:    ['Correct food item or receipt visible','Receipt shows Block Island business name','Date on receipt matches today'],
+  shopping:['Receipt or purchase item visible','Business name readable on receipt','Date matches today'],
+  adventure:['Activity shown matches the challenge','Hunter present in photo or location clear','Photo not taken from distance/screen'],
+  finish:  ['Final location clearly shown','Completion appears genuine','Timestamp matches hunt duration'],
+  default: ['Subject is clearly identifiable','Photo appears genuine and recent','Location matches the stated stop'],
+};
+
+function openPhotoModal(index){
+  currentPhotoIndex=index;
+  const item=currentResult.completedItems[index];
+  const checklist=VERIFY_CHECKLIST[item.type]||VERIFY_CHECKLIST.default;
+
+  document.getElementById('pm-emoji').textContent=item.emoji;
+  document.getElementById('pm-name').textContent=item.title;
+  document.getElementById('pm-desc').textContent=`Location: ${item.location}`;
+
+  const cl=document.getElementById('pm-checklist');
+  cl.innerHTML=checklist.map(c=>`
+    <div class="photo-modal-check-item">
+      <div class="check-circle">✓</div>
+      <div class="photo-modal-check-text">${c}</div>
+    </div>`).join('');
+
+  document.getElementById('photo-modal').classList.add('open');
+}
+
+function closePhotoModal(){
+  document.getElementById('photo-modal').classList.remove('open');
+  currentPhotoIndex=null;
+}
+
+
+function verifyAllPhotos(){
+  if(!currentResult) return;
+  const total = Object.keys(photoVerifyState).length;
+  if(total === 0){ showAdminToast('No items to verify'); return; }
+
+  const pending = Object.values(photoVerifyState).filter(v=>v==='pending').length;
+  if(pending === 0){ showAdminToast('All photos already verified!'); return; }
+
+  const msg = pending === total
+    ? `Approve all ${total} photo${total!==1?'s':''} at once?`
+    : `Approve remaining ${pending} unverified photo${pending!==1?'s':''}?`;
+
+  if(!confirm(msg)) return;
+
+  Object.keys(photoVerifyState).forEach(k => {
+    photoVerifyState[k] = 'approved';
+  });
+
+  renderPhotoItemsList(currentResult);
+  appendNote('All photos bulk-verified by staff');
+  showAdminToast('✅ All ' + total + ' photos approved');
+}
+
+function approvePhoto(){
+  if(currentPhotoIndex===null) return;
+  photoVerifyState[currentPhotoIndex]='approved';
+  closePhotoModal();
+  renderPhotoItemsList(currentResult);
+  const stats=getVerifyStats(currentResult.completedItems);
+  showToast(`Photo verified ✅ (${stats.approved}/${stats.total} done)`);
+}
+
+function rejectPhoto(){
+  if(currentPhotoIndex===null) return;
+  photoVerifyState[currentPhotoIndex]='rejected';
+  closePhotoModal();
+  renderPhotoItemsList(currentResult);
+  showToast('Photo flagged ✗');
+}
+
+// Close modal on backdrop tap
+document.addEventListener('click',e=>{
+  if(e.target.id==='photo-modal') closePhotoModal();
+});
+
+
+function getTierMedal(tier){
+  const m={'Explorer':'🥉','Adventurer':'🥈','Islander':'🥇','Champion':'💎','Grand Circuit Champion':'💎','Sprint Finisher':'🏅','Island Champion':'🏆'};
+  return m[tier]||'🏅';
+}
+
+async function markRedeemed(){
+  if(!currentResult) return;
+  const btn=document.getElementById('redeem-main-btn');
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  const staff=currentStaff||JSON.parse(sessionStorage.getItem('bi_staff')||'{}');
+  const notes=document.getElementById('staff-notes')?.value||'';
+  const verifiedItems=Object.entries(photoVerifyState)
+    .map(([i,v])=>({item:currentResult.completedItems?.[i]?.title||i, verdict:v}));
+  await saveRedemption({
+    code:currentResult.code, userName:currentResult.name, huntName:currentResult.hunt,
+    huntId:currentResult.huntId, type:currentResult.type, pts:currentResult.pts,
+    tier:currentResult.tier, reward:currentResult.reward,
+    done:currentResult.done, total:currentResult.total,
+    staffId:staff.id, staffName:staff.name,
+    photoVerifications:verifiedItems,
+    notes, ts:Date.now(), status:'redeemed'
+  });
+  showToast('✅ Reward issued & saved to the platform!');
+  setTimeout(()=>showScreen('dashboard'),1200);
+}
+
+async function markRejected(){
+  if(!currentResult) return;
+  const staff=currentStaff||JSON.parse(sessionStorage.getItem('bi_staff')||'{}');
+  const notes=document.getElementById('staff-notes')?.value||'';
+  await saveRedemption({
+    code:currentResult.code, userName:currentResult.name, huntName:currentResult.hunt,
+    pts:currentResult.pts, tier:currentResult.tier,
+    staffId:staff.id, staffName:staff.name,
+    notes, ts:Date.now(), status:'rejected'
+  });
+  showToast('Marked as rejected');
+  setTimeout(()=>showScreen('dashboard'),1000);
+}
+
+// ════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function appendNote(text){
+  const ta=document.getElementById('staff-notes');
+  if(!ta) return;
+  ta.value=ta.value?ta.value+'\n'+text:text;
+  ta.focus();
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  renderStaffGrid();
+  // Re-login if session exists
+  const saved=sessionStorage.getItem('bi_staff');
+  if(saved){
+    currentStaff=JSON.parse(saved);
+    showScreen('dashboard');
+  }
+});
+
+
+// ════════════════════════════════════════
+//  ANALYTICS
+// ════════════════════════════════════════
+const AN_HUNTS=[
+  {id:'explorer',  emoji:'🗺️',title:'Island Explorer', items:32,threshold:.5,price:14.99},
+  {id:'nature',    emoji:'🦅',title:'Nature & Wildlife',items:30,threshold:.5,price:14.99},
+  {id:'history',   emoji:'🏛️',title:'History Buff',     items:30,threshold:.5,price:14.99},
+  {id:'foodie',    emoji:'🦞',title:'Foodie Circuit',   items:32,threshold:.5,price:14.99},
+  {id:'pubcrawl',  emoji:'🍺',title:'Pub Crawl',        items:28,threshold:.5,price:14.99},
+  {id:'fishing',   emoji:'🎣',title:'Fishing Tour',     items:28,threshold:.5,price:14.99},
+  {id:'thrill',    emoji:'🏄',title:'Thrill Seeker',    items:30,threshold:.5,price:14.99},
+  {id:'shopping',  emoji:'🛍️',title:'Shopping Tour',    items:32,threshold:.5,price:14.99},
+];
+
+function anTimeAgo(ts){
+  const d=Date.now()-ts;
+  if(d<3600000) return Math.floor(d/60000)+'m ago';
+  if(d<86400000) return Math.floor(d/3600000)+'h ago';
+  return Math.floor(d/86400000)+'d ago';
+}
+
+function anMockData(){
+  const names=['Sarah M.','Jake R.','Emily T.','Chris L.','Anna K.','Mike D.','Beth P.','Tom H.','Lisa N.','Dan W.'];
+  const now=Date.now();
+  const hunters=[];
+  for(let i=0;i<42;i++){
+    const name=names[i%names.length]+(i>=names.length?' '+Math.floor(i/names.length+2):'');
+    const unlocked=AN_HUNTS.filter(()=>Math.random()>.55).map(h=>h.id);
+    if(!unlocked.length) unlocked.push(AN_HUNTS[Math.floor(Math.random()*AN_HUNTS.length)].id);
+    const progress={};
+    AN_HUNTS.forEach(h=>{
+      if(unlocked.includes(h.id)){
+        const done=Math.floor(Math.random()*h.items);
+        progress[h.id]={completedItems:Array.from({length:done},(_,j)=>'item'+j)};
+      }
+    });
+    hunters.push({name,unlockedHunts:unlocked,progress,createdAt:new Date(now-Math.floor(Math.random()*60)*86400000).toISOString()});
+  }
+  const redemptions=[];
+  const huntNames=Object.fromEntries(AN_HUNTS.map(h=>[h.id,h.title]));
+  for(let i=0;i<18;i++){
+    const h=AN_HUNTS[Math.floor(Math.random()*AN_HUNTS.length)];
+    redemptions.push({hunterName:names[Math.floor(Math.random()*names.length)],huntId:h.id,huntName:huntNames[h.id],redeemedAt:new Date(now-Math.floor(Math.random()*30)*86400000).toISOString(),status:Math.random()>.2?'redeemed':'valid',code:'BI-DEMO-'+i});
+  }
+  redemptions.sort((a,b)=>new Date(b.redeemedAt)-new Date(a.redeemedAt));
+  return {hunters,redemptions,isMock:true};
+}
+
+async function loadAnalytics(){
+  document.getElementById('an-updated').textContent='Loading…';
+  let data=null;
+  if(isPlatformApiReady()){
+    try{
+      const res=await scavengerApi('/admin/summary');
+      const hunters=(res.hunters||[]).filter(h=>!h.is_demo).map(h=>({
+        name:h.name,
+        unlockedHunts:h.unlocked_hunts||[],
+        progress:h.progress||{},
+        createdAt:h.created_at
+      }));
+      const redemptions=(res.redemptions||[]).map(r=>({
+        code:r.code,
+        hunterName:r.hunter_name,
+        huntId:r.hunt_id,
+        huntName:r.hunt_title,
+        redeemedAt:r.redeemed_at,
+        status:r.status
+      }));
+      if(hunters.length>=1) data={hunters,redemptions,isMock:false};
+    }catch(e){console.warn('Analytics fetch failed:',e);}
+  }
+  if(!data) data=anMockData();
+  const {hunters,redemptions}=data;
+  const now=Date.now();
+
+  // KPIs
+  let totalUnlocks=0;
+  hunters.forEach(h=>{ totalUnlocks+=(h.unlockedHunts||[]).length; });
+  const revenue=totalUnlocks*14.99;
+  const redeemed=redemptions.filter(r=>r.status==='redeemed').length;
+  const weekAgo=now-7*86400000;
+  const newWeek=hunters.filter(h=>new Date(h.createdAt||0)>weekAgo).length;
+  let cNum=0,cDen=0;
+  hunters.forEach(h=>{
+    (h.unlockedHunts||[]).forEach(hid=>{
+      const hunt=AN_HUNTS.find(hh=>hh.id===hid);
+      const done=((h.progress||{})[hid]?.completedItems||[]).length;
+      if(hunt&&done>0){cDen++;if(done>=Math.ceil(hunt.items*hunt.threshold))cNum++;}
+    });
+  });
+  const avgRate=cDen>0?Math.round(cNum/cDen*100):0;
+
+  document.getElementById('an-kpi-row').innerHTML=`
+    <div class="an-kpi">
+      <div class="an-kpi-label">Est. Revenue</div>
+      <div class="an-kpi-value">$${Math.round(revenue).toLocaleString()}</div>
+      <div class="an-kpi-sub">${totalUnlocks} unlocks</div>
+      <span class="an-kpi-trend an-trend-up">↑ Season</span>
+    </div>
+    <div class="an-kpi">
+      <div class="an-kpi-label">Hunters</div>
+      <div class="an-kpi-value">${hunters.length}</div>
+      <div class="an-kpi-sub">+${newWeek} this week</div>
+      <span class="an-kpi-trend an-trend-up">Active</span>
+    </div>
+    <div class="an-kpi">
+      <div class="an-kpi-label">Redeemed</div>
+      <div class="an-kpi-value">${redeemed}</div>
+      <div class="an-kpi-sub">Swag bags claimed</div>
+      <span class="an-kpi-trend ${redeemed>0?'an-trend-up':'an-trend-neutral'}">${redeemed>0?'↑ Live':'Soon'}</span>
+    </div>
+    <div class="an-kpi">
+      <div class="an-kpi-label">Reward Rate</div>
+      <div class="an-kpi-value">${avgRate}%</div>
+      <div class="an-kpi-sub">Of started hunts</div>
+      <span class="an-kpi-trend ${avgRate>=40?'an-trend-up':'an-trend-neutral'}">${avgRate>=40?'Strong':'Building'}</span>
+    </div>`;
+
+  // Hunt popularity bars
+  const maxUnlocks=Math.max(1,...AN_HUNTS.map(h=>hunters.filter(u=>(u.unlockedHunts||[]).includes(h.id)).length));
+  document.getElementById('an-popularity-list').innerHTML=AN_HUNTS.map(hunt=>{
+    const count=hunters.filter(u=>(u.unlockedHunts||[]).includes(hunt.id)).length;
+    const pct=Math.round(count/maxUnlocks*100);
+    return `<div class="an-pb-row">
+      <div class="an-pb-label">${hunt.emoji} ${hunt.title}</div>
+      <div class="an-pb-bar"><div class="an-pb-fill" style="width:${pct}%"></div></div>
+      <div class="an-pb-val">${count}</div>
+    </div>`;
+  }).join('');
+
+  // Performance table
+  document.getElementById('an-table-body').innerHTML=AN_HUNTS.map(hunt=>{
+    const unlocked=hunters.filter(h=>(h.unlockedHunts||[]).includes(hunt.id)).length;
+    const rewarded=hunters.filter(h=>{const p=(h.progress||{})[hunt.id];return p&&(p.completedItems||[]).length>=Math.ceil(hunt.items*hunt.threshold);}).length;
+    const rate=unlocked>0?Math.round(rewarded/unlocked*100):0;
+    const badge=rate>=50?'an-badge-green':rate>=25?'an-badge-blue':'an-badge-gray';
+    return `<tr>
+      <td>${hunt.emoji} <span style="font-weight:600;">${hunt.title.split(' ')[0]}</span></td>
+      <td><span class="an-badge an-badge-blue">${unlocked}</span></td>
+      <td><span class="an-badge ${badge}">${rewarded}</span></td>
+      <td style="font-weight:700;color:#1a6b8a;">${rate}%</td>
+      <td style="font-weight:700;color:#2a7d44;">$${Math.round(unlocked*14.99)}</td>
+    </tr>`;
+  }).join('');
+
+  // Redemptions feed
+  const recent=redemptions.slice(0,8);
+  document.getElementById('an-redemptions-feed').innerHTML=recent.length
+    ?recent.map(r=>{
+      const initials=(r.hunterName||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const hunt=AN_HUNTS.find(h=>h.id===r.huntId);
+      const badge=r.status==='redeemed'?'an-badge-green':'an-badge-gold';
+      const label=r.status==='redeemed'?'Redeemed':'Pending';
+      const t=anTimeAgo(new Date(r.redeemedAt||r.date||Date.now()).getTime());
+      return `<div class="an-feed-item">
+        <div class="an-feed-avatar">${initials}</div>
+        <div>
+          <div class="an-feed-name">${r.hunterName||'Unknown'}</div>
+          <div class="an-feed-meta">${hunt?hunt.emoji+' ':''} ${r.huntName||hunt?.title||r.huntId} · <span class="an-badge ${badge}">${label}</span></div>
+        </div>
+        <div class="an-feed-time">${t}</div>
+      </div>`;
+    }).join('')
+    :'<div style="text-align:center;padding:20px;color:#8a9bb0;font-size:13px;">No redemptions yet</div>';
+
+  // Footer
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  document.getElementById('an-updated').textContent=`Updated ${ts}`;
+  document.getElementById('an-data-note').innerHTML=data.isMock
+    ?'<b style="color:#1a6b8a;">Demo data</b> — real data appears once hunters register'
+    :`<b style="color:#2a7d44;">Live data</b> — ${hunters.length} hunters · updated ${ts}`;
+}
+
+
+// ════════════════════════════════════════
+//  MANAGE — HUNT ROTATION + ITEM EDITOR
+// ════════════════════════════════════════
+const MG_HUNTS=[
+  {id:'explorer', emoji:'🗺️',title:'Island Explorer', items:32},
+  {id:'nature',   emoji:'🦅',title:'Nature & Wildlife',items:30},
+  {id:'history',  emoji:'🏛️',title:'History Buff',     items:30},
+  {id:'foodie',   emoji:'🦞',title:'Foodie Circuit',   items:32},
+  {id:'pubcrawl', emoji:'🍺',title:'Pub Crawl',        items:28},
+  {id:'fishing',  emoji:'🎣',title:'Fishing Tour',     items:28},
+  {id:'thrill',   emoji:'🏄',title:'Thrill Seeker',    items:30},
+  {id:'shopping', emoji:'🛍️',title:'Shopping Tour',    items:32},
+];
+
+// State for manage screen
+let mgRotation={activeHunts:MG_HUNTS.map(h=>h.id),featuredHunt:'explorer',seasonLabel:'',nextRotation:''};
+let mgCurrentHuntId=null;
+let mgItems=[]; // items currently being edited
+
+async function loadManage(){
+  // Populate hunt select
+  const sel=document.getElementById('mg-hunt-select');
+  if(sel.options.length<=1){
+    MG_HUNTS.forEach(h=>{
+      const o=document.createElement('option');
+      o.value=h.id; o.textContent=h.emoji+' '+h.title;
+      sel.appendChild(o);
+    });
+  }
+  // Load rotation from platform API
+  if(isPlatformApiReady()){
+    try{
+      const res=await scavengerApi('/config');
+      if(res.config) mgRotation={...mgRotation,...res.config};
+    }catch(e){console.warn('Rotation fetch failed:',e);}
+  }
+  renderRotationList();
+  loadCustomCatalog();
+  document.getElementById('mg-season-label').value=mgRotation.seasonLabel||'';
+  document.getElementById('mg-next-rotation').value=mgRotation.nextRotation||'';
+  const active=(mgRotation.activeHunts||[]).length;
+  document.getElementById('mg-rotation-status').textContent=active+'/'+MG_HUNTS.length+' active';
+}
+
+function renderRotationList(){
+  const active=mgRotation.activeHunts||MG_HUNTS.map(h=>h.id);
+  // Will be extended with custom hunts via loadCustomCatalog
+  const featured=mgRotation.featuredHunt||'';
+  document.getElementById('mg-rotation-list').innerHTML=MG_HUNTS.map(h=>`
+    <div class="mg-hunt-row">
+      <div class="mg-hunt-emoji">${h.emoji}</div>
+      <div class="mg-hunt-info">
+        <div class="mg-hunt-name">${h.title}</div>
+        <div class="mg-hunt-meta">${h.items} items · $14.99</div>
+      </div>
+      <span class="mg-featured-star ${featured===h.id?'on':''}" title="Set as featured" onclick="setFeatured('${h.id}')">⭐</span>
+      <label class="mg-toggle">
+        <input type="checkbox" ${active.includes(h.id)?'checked':''} onchange="toggleHunt('${h.id}',this.checked)">
+        <span class="mg-toggle-slider"></span>
+      </label>
+    </div>`).join('');
+}
+
+function toggleHunt(id,on){
+  const list=mgRotation.activeHunts||MG_HUNTS.map(h=>h.id);
+  if(on&&!list.includes(id)) list.push(id);
+  if(!on) mgRotation.activeHunts=list.filter(h=>h!==id);
+  else mgRotation.activeHunts=list;
+  const active=mgRotation.activeHunts.length;
+  document.getElementById('mg-rotation-status').textContent=active+'/'+MG_HUNTS.length+' active';
+}
+
+function setFeatured(id){
+  mgRotation.featuredHunt=id;
+  renderRotationList();
+  showAdminToast('⭐ '+MG_HUNTS.find(h=>h.id===id)?.title+' set as featured hunt');
+}
+
+async function saveRotation(){
+  mgRotation.seasonLabel=document.getElementById('mg-season-label').value.trim();
+  mgRotation.nextRotation=document.getElementById('mg-next-rotation').value;
+  mgRotation.updatedAt=new Date().toISOString();
+  mgRotation.updatedBy=currentStaff?.name||'Admin';
+  if(isPlatformApiReady()){
+    try{
+      await scavengerApi('/config',{
+        method:'PUT',
+        body:JSON.stringify(mgRotation)
+      });
+      showAdminToast('✅ Rotation settings saved!');
+    }catch(e){
+      console.warn('Save rotation failed:',e);
+      showAdminToast('⚠️ Saved locally — API write failed');
+    }
+  } else {
+    showAdminToast('⚠️ Platform API not connected');
+  }
+}
+
+// ── ITEM EDITOR ──────────────────────────────────────────────────────────────
+async function loadItemEditor(){
+  const sel=document.getElementById('mg-hunt-select');
+  mgCurrentHuntId=sel.value;
+  const editor=document.getElementById('mg-item-editor');
+  if(!mgCurrentHuntId){editor.style.display='none';return;}
+  editor.style.display='block';
+  document.getElementById('mg-save-note').textContent='';
+  // Try API first, fallback to showing placeholder
+  mgItems=[];
+  if(isPlatformApiReady()){
+    try{
+      const res=await scavengerApi('/hunts/'+encodeURIComponent(mgCurrentHuntId));
+      if(res.hunt&&res.hunt.items) mgItems=[...res.hunt.items];
+    }catch(e){console.warn('Item load failed:',e);}
+  }
+  // If no API items, show note
+  if(!mgItems.length){
+    document.getElementById('mg-save-note').textContent='No API items yet — add items and save, or the app uses its built-in list.';
+  }
+  renderItemList();
+}
+
+function renderItemList(){
+  const hunt=MG_HUNTS.find(h=>h.id===mgCurrentHuntId);
+  const list=document.getElementById('mg-item-list');
+  if(!mgItems.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:#8a9bb0;font-size:13px;">No items yet — add your first item below</div>';
+    return;
+  }
+  list.innerHTML=mgItems.map((item,i)=>`
+    <div class="mg-item-row" onclick="openItemModal(${i})">
+      <div class="mg-item-emoji">${item.emoji||'📍'}</div>
+      <div class="mg-item-title">${item.title||'Untitled'}</div>
+      <div class="mg-item-pts">${item.points||50}pts</div>
+      <div class="mg-item-del" onclick="event.stopPropagation();deleteItem(${i})">✕</div>
+    </div>`).join('');
+}
+
+function openItemModal(index){
+  const modal=document.getElementById('mg-modal-overlay');
+  document.getElementById('mg-edit-index').value=index===null?-1:index;
+  document.getElementById('mg-modal-title').textContent=index===null?'New Item':'Edit Item';
+  if(index===null){
+    // Clear form
+    ['emoji','title','location','desc','hint','type'].forEach(f=>document.getElementById('mg-edit-'+f).value='');
+    document.getElementById('mg-edit-points').value='50';
+  } else {
+    const item=mgItems[index];
+    document.getElementById('mg-edit-emoji').value=item.emoji||'📍';
+    document.getElementById('mg-edit-title').value=item.title||'';
+    document.getElementById('mg-edit-location').value=item.location||'';
+    document.getElementById('mg-edit-desc').value=item.desc||'';
+    document.getElementById('mg-edit-hint').value=item.hint||'';
+    document.getElementById('mg-edit-points').value=item.points||50;
+    document.getElementById('mg-edit-type').value=item.type||'landmark';
+  }
+  modal.style.display='flex';
+}
+
+function closeMgModal(){
+  document.getElementById('mg-modal-overlay').style.display='none';
+}
+
+function saveMgItem(){
+  const idx=parseInt(document.getElementById('mg-edit-index').value);
+  const item={
+    id: idx>=0 ? (mgItems[idx].id||mgCurrentHuntId+'_'+Date.now()) : mgCurrentHuntId+'_'+Date.now(),
+    emoji:    document.getElementById('mg-edit-emoji').value.trim()||'📍',
+    title:    document.getElementById('mg-edit-title').value.trim(),
+    location: document.getElementById('mg-edit-location').value.trim(),
+    desc:     document.getElementById('mg-edit-desc').value.trim(),
+    hint:     document.getElementById('mg-edit-hint').value.trim(),
+    points:   parseInt(document.getElementById('mg-edit-points').value)||50,
+    type:     document.getElementById('mg-edit-type').value.trim()||'landmark',
+  };
+  if(!item.title){showAdminToast('Please enter a title');return;}
+  if(idx>=0) mgItems[idx]=item;
+  else mgItems.push(item);
+  closeMgModal();
+  renderItemList();
+  document.getElementById('mg-save-note').textContent='Unsaved changes — tap Save to push to the platform';
+}
+
+function deleteItem(index){
+  if(!confirm('Delete "'+mgItems[index].title+'"?')) return;
+  mgItems.splice(index,1);
+  renderItemList();
+  document.getElementById('mg-save-note').textContent='Unsaved changes — tap Save to push to the platform';
+}
+
+async function saveHuntItems(){
+  if(!mgCurrentHuntId){showAdminToast('No hunt selected');return;}
+  if(!isPlatformApiReady()){showAdminToast('⚠️ Platform API not connected');return;}
+  try{
+    await scavengerApi('/hunts/'+encodeURIComponent(mgCurrentHuntId)+'/items',{
+      method:'PUT',
+      body:JSON.stringify({
+      items: mgItems,
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentStaff?.name||'Admin'
+      })
+    });
+    document.getElementById('mg-save-note').textContent='✅ Saved to platform — hunters will see these items on next app load';
+    showAdminToast('✅ Hunt items saved!');
+  }catch(e){
+    console.warn('Save items failed:',e);
+    showAdminToast('⚠️ Save failed: '+e.message);
+  }
+}
+
+function showAdminToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t);}
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a2535;color:white;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;opacity:1;transition:opacity .3s;font-family:DM Sans,sans-serif;white-space:nowrap;';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{t.style.opacity='0';},2800);
+}
+
+
+// ════════════════════════════════════════
+//  NEW HUNT CREATION
+// ════════════════════════════════════════
+let nhItems = [];      // items being built for new hunt
+let nhEditingId = null; // null = new, string = editing existing custom hunt
+
+function toggleNewHuntForm(editHunt){
+  const form = document.getElementById('mg-new-hunt-form');
+  if(form.classList.contains('open') && !editHunt){
+    form.classList.remove('open');
+    return;
+  }
+  // Reset or pre-fill for editing
+  nhItems = [];
+  nhEditingId = null;
+  if(editHunt){
+    nhEditingId = editHunt.id;
+    document.getElementById('nh-title').value   = editHunt.title || '';
+    document.getElementById('nh-emoji').value   = editHunt.emoji || '';
+    document.getElementById('nh-desc').value    = editHunt.desc  || '';
+    document.getElementById('nh-price').value   = editHunt.price || 14.99;
+    // Load items
+    nhItems = editHunt._items || [];
+    renderNhItemList();
+  } else {
+    document.getElementById('nh-title').value  = '';
+    document.getElementById('nh-emoji').value  = '';
+    document.getElementById('nh-desc').value   = '';
+    document.getElementById('nh-price').value  = '14.99';
+    // Reset radio selections
+    document.querySelectorAll('.mg-radio-opt.sel').forEach(el=>el.classList.remove('sel'));
+    document.querySelectorAll('[onclick*="nh-difficulty"]')[0]?.classList.add('sel');
+    document.querySelectorAll('[onclick*="nh-threshold"]')[0]?.classList.add('sel');
+    document.querySelectorAll('[onclick*="nh-age"]')[0]?.classList.add('sel');
+    // Reset color
+    document.querySelectorAll('.mg-color-swatch').forEach((s,i)=>{s.classList.toggle('selected',i===0);});
+    renderNhItemList();
+  }
+  form.classList.add('open');
+  nhGoToPhase(1);
+}
+
+function selectNhOpt(el, group){
+  document.querySelectorAll(`[onclick*="${group}"]`).forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function selectNhColor(el){
+  document.querySelectorAll('.mg-color-swatch').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function getNhSelectedOpt(group){
+  return document.querySelector(`[onclick*="${group}"].sel`)?.textContent.trim() || '';
+}
+
+function getNhSelectedColor(){
+  return document.querySelector('.mg-color-swatch.selected')?.dataset.grad
+    || 'linear-gradient(135deg,#0b3d5e 0%,#1a6b8a 100%)';
+}
+
+function nhNextPhase(from){
+  if(from===1){
+    // Validate details
+    const title = document.getElementById('nh-title').value.trim();
+    const emoji = document.getElementById('nh-emoji').value.trim();
+    if(!title){ showAdminToast('Please enter a hunt name'); return; }
+    if(!emoji){ showAdminToast('Please enter an emoji'); return; }
+    document.getElementById('nh-building-label').textContent = emoji + ' ' + title;
+    nhGoToPhase(2);
+  } else if(from===2){
+    if(nhItems.length === 0){ showAdminToast('Add at least one item before continuing'); return; }
+    nhBuildReviewCard();
+    nhGoToPhase(3);
+  } else if(from===0){
+    nhGoToPhase(1);
+  } else if(from===3){
+    nhGoToPhase(2);
+  }
+}
+
+function nhGoToPhase(phase){
+  document.getElementById('nh-details-phase').style.display = phase===1?'block':'none';
+  document.getElementById('nh-items-phase').style.display   = phase===2?'block':'none';
+  document.getElementById('nh-review-phase').style.display  = phase===3?'block':'none';
+  [1,2,3].forEach(p=>{
+    const el = document.getElementById('nh-phase-'+p);
+    if(el){
+      el.classList.toggle('active', p===phase);
+      el.classList.toggle('done',   p<phase);
+    }
+  });
+}
+
+function nhBuildReviewCard(){
+  const title     = document.getElementById('nh-title').value.trim();
+  const emoji     = document.getElementById('nh-emoji').value.trim();
+  const desc      = document.getElementById('nh-desc').value.trim();
+  const difficulty= getNhSelectedOpt('nh-difficulty');
+  const threshold = getNhSelectedOpt('nh-threshold');
+  const age       = getNhSelectedOpt('nh-age');
+  const price     = parseFloat(document.getElementById('nh-price').value) || 14.99;
+  const grad      = getNhSelectedColor();
+
+  document.getElementById('nh-review-card').innerHTML = `
+    <div style="background:${grad};border-radius:10px;padding:14px;color:white;margin-bottom:12px;">
+      <div style="font-size:32px;margin-bottom:6px;">${emoji}</div>
+      <div style="font-weight:800;font-size:16px;">${title}</div>
+      <div style="font-size:12px;opacity:.8;margin-top:4px;">${desc||'No description'}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+      <div><b>Difficulty:</b> ${difficulty}</div>
+      <div><b>Reward at:</b> ${threshold}</div>
+      <div><b>Age:</b> ${age}</div>
+      <div><b>Price:</b> $${price.toFixed(2)}</div>
+      <div><b>Items:</b> ${nhItems.length}</div>
+      <div><b>Status:</b> New hunt</div>
+    </div>`;
+}
+
+// Item list for new hunt (separate from existing editor)
+function renderNhItemList(){
+  const list = document.getElementById('nh-item-list');
+  if(!list) return;
+  if(!nhItems.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:#8a9bb0;font-size:13px;">No items yet — add your first item below</div>';
+    return;
+  }
+  list.innerHTML = nhItems.map((item,i)=>`
+    <div class="mg-item-row" onclick="openNhItemModal(${i})">
+      <div class="mg-item-emoji">${item.emoji||'📍'}</div>
+      <div class="mg-item-title">${item.title||'Untitled'}</div>
+      <div class="mg-item-pts">${item.points||50}pts</div>
+      <div class="mg-item-del" onclick="event.stopPropagation();deleteNhItem(${i})">✕</div>
+    </div>`).join('');
+}
+
+function openNhItemModal(index){
+  // Reuse the existing item modal but save to nhItems
+  const modal = document.getElementById('mg-modal-overlay');
+  document.getElementById('mg-edit-index').value = index===null ? -1 : index;
+  document.getElementById('mg-modal-title').textContent = index===null ? 'New Item' : 'Edit Item';
+  // Mark modal as being used for new hunt
+  modal.dataset.context = 'newhunt';
+  if(index===null){
+    ['emoji','title','location','desc','hint','type'].forEach(f=>document.getElementById('mg-edit-'+f).value='');
+    document.getElementById('mg-edit-points').value='50';
+  } else {
+    const item = nhItems[index];
+    document.getElementById('mg-edit-emoji').value    = item.emoji    || '📍';
+    document.getElementById('mg-edit-title').value    = item.title    || '';
+    document.getElementById('mg-edit-location').value = item.location || '';
+    document.getElementById('mg-edit-desc').value     = item.desc     || '';
+    document.getElementById('mg-edit-hint').value     = item.hint     || '';
+    document.getElementById('mg-edit-points').value   = item.points   || 50;
+    document.getElementById('mg-edit-type').value     = item.type     || 'landmark';
+  }
+  modal.style.display='flex';
+}
+
+function deleteNhItem(index){
+  if(!confirm('Delete "'+nhItems[index].title+'"?')) return;
+  nhItems.splice(index,1);
+  renderNhItemList();
+}
+
+// Override saveMgItem to route saves to correct list
+const _originalSaveMgItem = saveMgItem;
+saveMgItem = function(){
+  const modal = document.getElementById('mg-modal-overlay');
+  if(modal.dataset.context === 'newhunt'){
+    // Save to nhItems
+    const idx = parseInt(document.getElementById('mg-edit-index').value);
+    const item = {
+      id:       'item_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      emoji:    document.getElementById('mg-edit-emoji').value.trim()||'📍',
+      title:    document.getElementById('mg-edit-title').value.trim(),
+      location: document.getElementById('mg-edit-location').value.trim(),
+      desc:     document.getElementById('mg-edit-desc').value.trim(),
+      hint:     document.getElementById('mg-edit-hint').value.trim(),
+      points:   parseInt(document.getElementById('mg-edit-points').value)||50,
+      type:     document.getElementById('mg-edit-type').value.trim()||'landmark',
+    };
+    if(!item.title){ showAdminToast('Please enter a title'); return; }
+    if(idx>=0) nhItems[idx]=item;
+    else nhItems.push(item);
+    closeMgModal();
+    renderNhItemList();
+    modal.dataset.context = '';
+  } else {
+    _originalSaveMgItem();
+  }
+};
+
+// Override closeMgModal to clear context
+const _originalCloseMgModal = closeMgModal;
+closeMgModal = function(){
+  document.getElementById('mg-modal-overlay').dataset.context = '';
+  _originalCloseMgModal();
+};
+
+async function publishNewHunt(){
+  const title      = document.getElementById('nh-title').value.trim();
+  const emoji      = document.getElementById('nh-emoji').value.trim();
+  const desc       = document.getElementById('nh-desc').value.trim();
+  const difficulty = getNhSelectedOpt('nh-difficulty');
+  const threshText = getNhSelectedOpt('nh-threshold');
+  const age        = getNhSelectedOpt('nh-age');
+  const price      = parseFloat(document.getElementById('nh-price').value)||14.99;
+  const grad       = getNhSelectedColor();
+  const addToRot   = document.getElementById('nh-add-to-rotation').checked;
+
+  if(!title||!emoji){ showAdminToast('Missing title or emoji'); return; }
+  if(!nhItems.length){ showAdminToast('Add at least one item'); return; }
+  if(!isPlatformApiReady()){ showAdminToast('Platform API not connected'); return; }
+
+  // Build hunt ID from title
+  const huntId = nhEditingId || (title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + Date.now().toString(36));
+
+  // Threshold value
+  const thresholdMap = {'50% of items':0.5,'75% of items':0.75,'100% of items':1.0};
+  const rewardThreshold = thresholdMap[threshText] || 0.5;
+
+  // Age restriction
+  const ageRestricted = age !== 'All ages';
+  const ageLabel = age === '21+ only' ? '21+' : age === '18+ only' ? '18+' : null;
+
+  const huntMeta = {
+    id: huntId,
+    title, emoji, desc,
+    difficulty, rewardThreshold, ageRestricted,
+    ...(ageLabel ? {ageLabel} : {}),
+    price, gradInline: grad,
+    isCustom: true,
+    createdAt: nhEditingId ? undefined : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentStaff?.name || 'Admin',
+    totalPoints: nhItems.reduce((a,item)=>a+(item.points||0),0)
+  };
+  // Clean undefined
+  Object.keys(huntMeta).forEach(k => huntMeta[k]===undefined && delete huntMeta[k]);
+
+  try{
+    await scavengerApi('/catalog',{
+      method:'POST',
+      body:JSON.stringify({...huntMeta, items:nhItems})
+    });
+
+    // Optionally add to active rotation
+    if(addToRot){
+      const rotRes = await scavengerApi('/config');
+      const rotData = rotRes.config || {};
+      const active = rotData.activeHunts || [];
+      if(!active.includes(huntId)) active.push(huntId);
+      await scavengerApi('/config',{
+        method:'PUT',
+        body:JSON.stringify({...rotData, activeHunts:active})
+      });
+      mgRotation.activeHunts = active;
+    }
+
+    showAdminToast(`✅ "${title}" ${nhEditingId ? 'updated' : 'created & published'}!`);
+    document.getElementById('mg-new-hunt-form').classList.remove('open');
+    nhItems = [];
+    nhEditingId = null;
+    // Refresh catalog list
+    await loadCustomCatalog();
+    // Add to dropdown if new
+    const sel = document.getElementById('mg-hunt-select');
+    if(!sel.querySelector(`option[value="${huntId}"]`)){
+      const o = document.createElement('option');
+      o.value = huntId;
+      o.textContent = emoji + ' ' + title + ' (Custom)';
+      sel.appendChild(o);
+    }
+    // Refresh rotation list
+    renderRotationList();
+
+  }catch(e){
+    console.error('Publish failed:', e);
+    showAdminToast('⚠️ Error: ' + e.message);
+  }
+}
+
+// Load + display custom hunts in catalog section
+async function loadCustomCatalog(){
+  const container = document.getElementById('mg-custom-catalog');
+  if(!container||!isPlatformApiReady()) return;
+  try{
+    const res = await scavengerApi('/catalog');
+    const customs = (res.catalog||[]).filter(d=>!d.id.startsWith('_'));
+    if(!customs.length){
+      container.innerHTML='';
+      return;
+    }
+    container.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:#8a9bb0;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">${customs.length} Custom Hunt${customs.length!==1?'s':''}</div>
+      <div class="mg-card">${customs.map(h=>`
+        <div class="mg-catalog-item">
+          <span style="font-size:22px;">${h.emoji||'🗺️'}</span>
+          <div>
+            <div style="font-weight:600;font-size:13px;">${h.title}</div>
+            <div style="font-size:11px;color:#8a9bb0;">${h.items||0} items · $${h.price||14.99} · ${h.difficulty||'Moderate'}</div>
+          </div>
+          <button class="mg-catalog-edit-btn" onclick="editCustomHunt('${h.id}')">Edit</button>
+          <button class="mg-catalog-del-btn" onclick="deleteCustomHunt('${h.id}','${h.title}')">✕</button>
+        </div>`).join('')}</div>`;
+  }catch(e){ console.warn('Catalog load failed:', e); }
+}
+
+async function editCustomHunt(huntId){
+  if(!isPlatformApiReady()) return;
+  try{
+    const res = await scavengerApi('/hunts/'+encodeURIComponent(huntId));
+    if(!res.hunt){ showAdminToast('Hunt not found'); return; }
+    const meta  = res.hunt.catalog || res.hunt;
+    const items = res.hunt.items || [];
+    meta._items = items;
+    nhItems = [...items];
+    toggleNewHuntForm(meta);
+  }catch(e){ showAdminToast('Load failed: '+e.message); }
+}
+
+async function deleteCustomHunt(huntId, title){
+  if(!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  if(!isPlatformApiReady()) return;
+  try{
+    await scavengerApi('/catalog/'+encodeURIComponent(huntId),{method:'DELETE'});
+    // Remove from rotation
+    const rotRes = await scavengerApi('/config');
+    if(rotRes.config){
+      const d = rotRes.config;
+      d.activeHunts = (d.activeHunts||[]).filter(id=>id!==huntId);
+      await scavengerApi('/config',{method:'PUT',body:JSON.stringify(d)});
+      mgRotation.activeHunts = d.activeHunts;
+    }
+    showAdminToast(`✅ "${title}" deleted`);
+    await loadCustomCatalog();
+    renderRotationList();
+    // Remove from dropdown
+    const sel = document.getElementById('mg-hunt-select');
+    const opt = sel.querySelector(`option[value="${huntId}"]`);
+    if(opt) opt.remove();
+  }catch(e){ showAdminToast('Delete failed: '+e.message); }
+}
+
+
+// ════════════════════════════════════════
+//  HUNT DETAILS EDITOR
+// ════════════════════════════════════════
+let hdChanged = false;
+
+// Hardcoded hunt defaults for the 8 built-in hunts
+const HD_DEFAULTS = {
+  explorer: {title:'Island Explorer',   emoji:'🗺️', difficulty:'Moderate', price:14.99, rewardThreshold:.5, ageRestricted:false, gradInline:'linear-gradient(135deg,#0b3d5e 0%,#1a6b8a 100%)',
+    desc:'The definitive Block Island experience — 30 stops covering every corner of this extraordinary island, from hidden beaches to iconic landmarks most visitors never find.'},
+  nature:   {title:'Nature & Wildlife', emoji:'🦅', difficulty:'Easy',     price:14.99, rewardThreshold:.5, ageRestricted:false, gradInline:'linear-gradient(135deg,#1a5c2a 0%,#3a9d54 100%)',
+    desc:"Block Island is one of 12 'Last Great Places' on Earth per The Nature Conservancy. This hunt covers 30 natural wonders — rare wildlife, glacial geology, pristine coastline, and habitats that vanished from the mainland decades ago."},
+  history:  {title:'History Buff',      emoji:'🏛️', difficulty:'Moderate', price:14.99, rewardThreshold:.5, ageRestricted:false, gradInline:'linear-gradient(135deg,#b07d12 0%,#d4a94a 100%)',
+    desc:'400 years of Block Island history in 25 stops — Native American heritage, the 1661 founding families, Victorian-era hotels, maritime disasters, ghost lore, and the stories carved into every stone wall.'},
+  foodie:   {title:'Foodie Circuit',    emoji:'🦞', difficulty:'Easy',     price:14.99, rewardThreshold:.5, ageRestricted:false, gradInline:'linear-gradient(135deg,#0b3d5e 0%,#1a6b8a 100%)',
+    desc:"Block Island's most delicious scavenger hunt — 32 stops across every Chamber member restaurant, food truck, and cafe on the island. Collect receipts, photograph iconic dishes, and eat your way around BI."},
+  pubcrawl: {title:'Pub Crawl',         emoji:'🍺', difficulty:'Easy',     price:14.99, rewardThreshold:.5, ageRestricted:true,  ageLabel:'21+', gradInline:'linear-gradient(135deg,#c0392b 0%,#e05a3a 100%)',
+    desc:'Hit all 30 bars and watering holes on Block Island — from legendary dive bars and beach tiki huts to rooftop cocktails, live music, and the iconic oar-covered ceiling at The Oar. 21+ only. Please drink responsibly.'},
+  fishing:  {title:'Fishing Tour',      emoji:'🎣', difficulty:'Moderate', price:14.99, rewardThreshold:.5, ageRestricted:false, gradInline:'linear-gradient(135deg,#0e7060 0%,#22c5b0 100%)',
+    desc:"Block Island sits atop one of the East Coast's most productive fishing grounds — striped bass, bluefish, tuna, and fluke fill these waters. 28 stops covering charters, tackle, technique, fish markets, and the deep island fishing culture."},
+  thrill:   {title:'Thrill Seeker',     emoji:'🏄', difficulty:'Hard',     price:14.99, rewardThreshold:.5, ageRestricted:false, gradInline:'linear-gradient(135deg,#6b2fa0 0%,#a855f7 100%)',
+    desc:"Block Island's most physically demanding hunt — 30 stops covering parasailing, horseback riding, cliff descents, kayaking, ghost tours, glass float hunting, night swimming, and every adrenaline experience the island offers."},
+  shopping: {title:'Shopping Tour',     emoji:'🛍️', difficulty:'Easy',     price:14.99, rewardThreshold:.5, ageRestricted:false, gradInline:'linear-gradient(135deg,#0b3d5e 0%,#1a6b8a 100%)',
+    desc:'Block Island has 32+ independent shops — no chains, no franchises, all local. This hunt covers 32 stops across every boutique, gallery, bookstore, surf shop, jeweler, and gift store on the island. Support local businesses!'},
+};
+
+async function loadHuntEditor(){
+  // Load item editor as before
+  await loadItemEditor();
+  // Also load hunt details panel
+  const huntId = document.getElementById('mg-hunt-select').value;
+  const panel  = document.getElementById('hd-panel');
+  if(!huntId){ panel.classList.remove('open'); return; }
+  panel.classList.add('open');
+  hdChanged = false;
+  document.getElementById('hd-changed-badge').style.display = 'none';
+  document.getElementById('hd-save-note').textContent = '';
+
+  // Try to load from hunt_catalog (covers both custom hunts and any saved overrides)
+  let meta = HD_DEFAULTS[huntId] ? {...HD_DEFAULTS[huntId]} : null;
+  if(isPlatformApiReady()){
+    try{
+      const res = await scavengerApi('/hunts/'+encodeURIComponent(huntId));
+      if(res.hunt?.catalog) meta = {...(meta||{}), ...res.hunt.catalog};
+    }catch(e){ console.warn('Hunt catalog load failed:', e); }
+  }
+  if(!meta){ panel.classList.remove('open'); return; }
+
+  // Populate fields
+  document.getElementById('hd-title').value = meta.title  || '';
+  document.getElementById('hd-emoji').value = meta.emoji  || '';
+  document.getElementById('hd-desc').value  = meta.desc   || '';
+  document.getElementById('hd-price').value = meta.price  != null ? meta.price : 14.99;
+  document.getElementById('hd-panel-emoji').textContent = meta.emoji || '🗺️';
+
+  // Difficulty radio
+  const diff = meta.difficulty || 'Moderate';
+  document.querySelectorAll('#hd-difficulty-group .hd-radio').forEach(el=>{
+    el.classList.toggle('sel', el.textContent.trim() === diff);
+  });
+
+  // Threshold radio
+  const thr = meta.rewardThreshold || 0.5;
+  const thrLabel = thr >= 1 ? '100%' : thr >= 0.75 ? '75%' : '50%';
+  document.querySelectorAll('#hd-threshold-group .hd-radio').forEach(el=>{
+    el.classList.toggle('sel', el.textContent.trim() === thrLabel);
+  });
+
+  // Age radio
+  const ageLabel = meta.ageLabel || (meta.ageRestricted ? '21+' : 'All ages');
+  document.querySelectorAll('#hd-age-group .hd-radio').forEach(el=>{
+    el.classList.toggle('sel', el.textContent.trim() === ageLabel);
+  });
+
+  // Color swatch
+  const grad = meta.gradInline || '';
+  document.querySelectorAll('.hd-swatch').forEach(s=>{
+    s.classList.toggle('sel', s.dataset.grad === grad);
+  });
+
+  // Open body
+  document.getElementById('hd-body').classList.add('open');
+  document.getElementById('hd-chevron').classList.add('open');
+}
+
+function toggleHdPanel(){
+  const body    = document.getElementById('hd-body');
+  const chevron = document.getElementById('hd-chevron');
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+function selectHdRadio(el, groupId){
+  document.querySelectorAll('#'+groupId+' .hd-radio').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  hdMarkChanged();
+}
+
+function selectHdColor(el){
+  document.querySelectorAll('.hd-swatch').forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel');
+  hdMarkChanged();
+}
+
+function hdMarkChanged(){
+  hdChanged = true;
+  document.getElementById('hd-changed-badge').style.display = 'inline-block';
+}
+
+function getHdRadioVal(groupId){
+  return document.querySelector('#'+groupId+' .hd-radio.sel')?.textContent.trim() || '';
+}
+
+async function saveHuntDetails(){
+  const huntId = document.getElementById('mg-hunt-select').value;
+  if(!huntId){ showAdminToast('Select a hunt first'); return; }
+  if(!isPlatformApiReady()){ showAdminToast('Platform API not connected'); return; }
+
+  const title     = document.getElementById('hd-title').value.trim();
+  const emoji     = document.getElementById('hd-emoji').value.trim();
+  const desc      = document.getElementById('hd-desc').value.trim();
+  const price     = parseFloat(document.getElementById('hd-price').value) || 14.99;
+  const diff      = getHdRadioVal('hd-difficulty-group');
+  const thrLabel  = getHdRadioVal('hd-threshold-group');
+  const ageLabel  = getHdRadioVal('hd-age-group');
+  const grad      = document.querySelector('.hd-swatch.sel')?.dataset.grad || '';
+
+  if(!title || !emoji){ showAdminToast('Title and emoji are required'); return; }
+
+  const thrMap = {'50%':.5, '75%':.75, '100%':1.0};
+  const rewardThreshold = thrMap[thrLabel] || .5;
+  const ageRestricted   = ageLabel !== 'All ages';
+
+  const update = {
+    id: huntId,
+    title, emoji, desc, price,
+    difficulty: diff,
+    rewardThreshold,
+    ageRestricted,
+    ...(ageRestricted ? {ageLabel} : {ageLabel: null}),
+    gradInline: grad,
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentStaff?.name || 'Admin',
+    isCustom: true,
+  };
+
+  try{
+    // Save to hunt_catalog (creates entry for built-in hunts, updates custom ones)
+    await scavengerApi('/catalog/'+encodeURIComponent(huntId),{
+      method:'PATCH',
+      body:JSON.stringify(update)
+    });
+
+    hdChanged = false;
+    document.getElementById('hd-changed-badge').style.display = 'none';
+    document.getElementById('hd-save-note').textContent = '✓ Saved — changes live in the hunter app on next load';
+    showAdminToast('✅ Hunt details saved!');
+
+    // Update dropdown label if title/emoji changed
+    const sel = document.getElementById('mg-hunt-select');
+    const opt = sel.querySelector('option[value="'+huntId+'"]');
+    if(opt) opt.textContent = emoji + ' ' + title;
+
+    // Refresh custom catalog if shown
+    if(typeof loadCustomCatalog === 'function') loadCustomCatalog();
+
+  }catch(e){
+    showAdminToast('⚠️ Save failed: '+e.message);
+  }
+}
+
+// Enter key on PIN input
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const screen=document.querySelector('.screen.active');
+    if(screen?.id==='screen-login') attemptLogin();
+  }
+});
+</script>
+
+
+</body>
+</html>

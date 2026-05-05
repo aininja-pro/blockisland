@@ -1,0 +1,6 @@
+/scavenger-hunt/ @wgasner
+/src/api/scavenger.js @aininja-pro
+/src/models/scavenger.js @aininja-pro
+/src/db/migration-scavenger-hunt.sql @aininja-pro
+/src/scripts/import-scavenger-firebase-export.js @aininja-pro
+/admin/src/app/(protected)/scavenger-hunt/ @aininja-pro
