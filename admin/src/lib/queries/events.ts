@@ -38,7 +38,15 @@ export type EventUpdate = Partial<EventInsert>
 export async function getEvents(): Promise<Event[]> {
   const supabase = await createClient()
 
-  // Fetch all events in pages of 1000 (Supabase default limit)
+  // Admin list only needs recent + upcoming events. Exclude events that both
+  // started and ended more than ~90 days ago — they stay in the DB and the
+  // public feed, just not in this list (keeps the page fast vs. ~3.5k rows).
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - 90)
+  const cutoffStr = cutoff.toISOString().split('T')[0] // YYYY-MM-DD
+
+  // Fetch in pages of 1000 (Supabase default limit) — the window is normally
+  // well under 1000 rows, so this is a single round-trip.
   let allData: Event[] = []
   let from = 0
   const pageSize = 1000
@@ -47,6 +55,7 @@ export async function getEvents(): Promise<Event[]> {
     const { data, error } = await supabase
       .from('events')
       .select('*')
+      .or(`start_date.gte.${cutoffStr},end_date.gte.${cutoffStr}`)
       .order('start_date', { ascending: false })
       .range(from, from + pageSize - 1)
 
