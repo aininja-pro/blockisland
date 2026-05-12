@@ -13,6 +13,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 
+import { Download } from 'lucide-react'
+
 import {
   Table,
   TableBody,
@@ -31,12 +33,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Event } from '@/lib/queries/events'
+import { toCsv, downloadCsv, type CsvColumn } from '@/lib/csv'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onBulkDelete?: (rows: TData[]) => void
   onRowClick?: (row: TData) => void
+  csvExport?: { filename: () => string; columns: CsvColumn<TData>[] }
 }
 
 export function EventDataTable<TData extends Event, TValue>({
@@ -44,6 +48,7 @@ export function EventDataTable<TData extends Event, TValue>({
   data,
   onBulkDelete,
   onRowClick,
+  csvExport,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -110,6 +115,19 @@ export function EventDataTable<TData extends Event, TValue>({
               <SelectItem value="draft">Draft</SelectItem>
             </SelectContent>
           </Select>
+          {csvExport && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const rows = table.getFilteredRowModel().rows.map((r) => r.original)
+                downloadCsv(csvExport.filename(), toCsv(rows, csvExport.columns))
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
         </div>
         {selectedRows.length > 0 && onBulkDelete && (
           <Button

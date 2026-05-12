@@ -6,9 +6,10 @@ import { toast } from 'sonner'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/listings/data-table'
-import { getColumns } from '@/components/listings/columns'
+import { getColumns, buildCategoryLookup, getAppearsIn } from '@/components/listings/columns'
 import { Listing } from '@/lib/queries/listings'
 import { CategoryWithChildren } from '@/lib/queries/categories'
+import { todayStamp, type CsvColumn } from '@/lib/csv'
 import { ListingDialog } from '@/components/listings/listing-dialog'
 import { DeleteDialog } from '@/components/listings/delete-dialog'
 import { togglePremiumAction, togglePublishedAction } from '@/app/(protected)/premium/actions'
@@ -116,6 +117,31 @@ export function ListingsClient({ listings, filterCategories, categories, listing
     listingCategoryIds,
   })
 
+  // CSV export columns (blueprint 4.1) — Section/Categories resolved from the
+  // listing_categories junction, matching the "Appears In" table column.
+  const categoryLookup = buildCategoryLookup(categories)
+  const csvColumns: CsvColumn<Listing>[] = [
+    { header: 'Name', accessor: (l) => l.name },
+    { header: 'Address', accessor: (l) => l.address ?? '' },
+    { header: 'Status', accessor: (l) => (l.is_published !== false ? 'Published' : 'Draft') },
+    { header: 'Tier', accessor: (l) => (l.is_premium ? 'Premium' : 'Basic') },
+    {
+      header: 'Section',
+      accessor: (l) => {
+        const apps = getAppearsIn(l.id, listingCategoryIds, categoryLookup)
+        return Array.from(new Set(apps.map((a) => a.section))).join('; ')
+      },
+    },
+    {
+      header: 'Categories',
+      accessor: (l) => {
+        const apps = getAppearsIn(l.id, listingCategoryIds, categoryLookup)
+        const subs = apps.map((a) => a.subcategory).filter((s): s is string => !!s)
+        return Array.from(new Set(subs)).join('; ')
+      },
+    },
+  ]
+
   return (
     <>
       <div className="flex justify-end mb-4">
@@ -133,6 +159,7 @@ export function ListingsClient({ listings, filterCategories, categories, listing
         listingCategoryIds={listingCategoryIds}
         onBulkDelete={handleBulkDelete}
         onRowClick={handleEdit}
+        csvExport={{ filename: () => `block-island-listings-${todayStamp()}.csv`, columns: csvColumns }}
       />
 
       <ListingDialog
