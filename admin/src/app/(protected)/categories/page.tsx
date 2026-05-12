@@ -1,6 +1,7 @@
 import { getSectionStats, getSubcategoryStats, type SubcategoryStats } from '@/lib/queries/categories'
 import { SectionsTable } from '@/components/categories/sections-table'
 import { AddSectionButton } from './add-section-button'
+import { ExportCategoriesButton } from './export-categories-button'
 import { Folder } from 'lucide-react'
 
 export default async function CategoriesPage() {
@@ -57,7 +58,10 @@ export default async function CategoriesPage() {
             {sections.length} sections
           </p>
         </div>
-        <AddSectionButton />
+        <div className="flex items-center gap-2">
+          <ExportCategoriesButton sections={sections} subcategoriesBySection={subcategoriesBySection} />
+          <AddSectionButton />
+        </div>
       </div>
 
       <SectionsTable sections={sections} subcategoriesBySection={subcategoriesBySection} />

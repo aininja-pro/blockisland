@@ -27,7 +27,7 @@ interface ColumnsProps {
 }
 
 // Build a lookup map for category ID -> { section name, subcategory name }
-function buildCategoryLookup(categories: CategoryWithChildren[]) {
+export function buildCategoryLookup(categories: CategoryWithChildren[]) {
   const lookup: Record<string, { section: string; subcategory: string | null }> = {}
 
   for (const section of categories) {
@@ -44,7 +44,7 @@ function buildCategoryLookup(categories: CategoryWithChildren[]) {
 }
 
 // Get "Appears In" display for a listing
-function getAppearsIn(
+export function getAppearsIn(
   listingId: string,
   listingCategoryIds: Record<string, string[]>,
   categoryLookup: Record<string, { section: string; subcategory: string | null }>

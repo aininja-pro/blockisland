@@ -14,7 +14,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Filter, ChevronDown, ChevronRight, X } from 'lucide-react'
+import { Filter, ChevronDown, ChevronRight, X, Download } from 'lucide-react'
 
 import {
   Table,
@@ -42,6 +42,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Listing } from '@/lib/queries/listings'
 import { CategoryWithChildren } from '@/lib/queries/categories'
+import { toCsv, downloadCsv, type CsvColumn } from '@/lib/csv'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -51,6 +52,7 @@ interface DataTableProps<TData, TValue> {
   listingCategoryIds: Record<string, string[]>  // Listing ID -> category IDs
   onBulkDelete?: (rows: TData[]) => void
   onRowClick?: (row: TData) => void
+  csvExport?: { filename: () => string; columns: CsvColumn<TData>[] }
 }
 
 export function DataTable<TData extends Listing, TValue>({
@@ -61,6 +63,7 @@ export function DataTable<TData extends Listing, TValue>({
   listingCategoryIds,
   onBulkDelete,
   onRowClick,
+  csvExport,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -336,6 +339,19 @@ export function DataTable<TData extends Listing, TValue>({
               <SelectItem value="due_soon">Due Soon</SelectItem>
             </SelectContent>
           </Select>
+          {csvExport && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const rows = table.getFilteredRowModel().rows.map((r) => r.original)
+                downloadCsv(csvExport.filename(), toCsv(rows, csvExport.columns))
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
         </div>
         {selectedRows.length > 0 && onBulkDelete && (
           <Button
